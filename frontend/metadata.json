@@ -1,0 +1,6 @@
+{
+  "name": "DES-Coach",
+  "description": "Aplikasi Pengelolaan Coaching dan Konseling Karyawan Berbasis Web untuk memudahkan penjadwalan, pelaksanaan, pelaporan, dan evaluasi sesi bimbingan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

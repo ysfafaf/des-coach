@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, CoachingSession, EmailNotification, UserRole, Reply } from './types';
 import { INITIAL_USERS, INITIAL_SESSIONS } from './initialData';
+import { normalizeSession, normalizeSessions } from './sessionUtils';
 
 // Subcomponents import
 import LoginView from './components/LoginView';
@@ -46,9 +47,12 @@ export default function App() {
           ]);
           const usersData = await usersRes.json();
           const sessionsData = await sessionsRes.json();
-          
-          if (usersData.status) setUsers(usersData.data);
-          if (sessionsData.status) setSessions(sessionsData.data);
+
+          const fetchedUsers = usersData.status ? usersData.data : users;
+          if (usersData.status) setUsers(fetchedUsers);
+          if (sessionsData.status) {
+            setSessions(normalizeSessions(sessionsData.data, fetchedUsers));
+          }
         } catch (error) {
           console.error("Failed to fetch API data", error);
         }
@@ -175,7 +179,7 @@ export default function App() {
       });
       const data = await res.json();
       if (data.status) {
-        setSessions(prev => [data.data, ...prev]);
+        setSessions(prev => [normalizeSession({ ...newSession, ...data.data }, users), ...prev]);
         
         // Simulating email notification read in UI
         const newNotification: EmailNotification = {

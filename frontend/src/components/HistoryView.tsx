@@ -66,9 +66,12 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
   };
 
   const visibleSessions = getVisibleSessions().filter(s => {
-    const matchesSearch = s.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          s.coachName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          s.topic.toLowerCase().includes(searchQuery.toLowerCase());
+    const employeeName = s.employeeName ?? '';
+    const coachName = s.coachName ?? '';
+    const topic = s.topic ?? '';
+    const matchesSearch = employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          coachName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          topic.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'Semua' || s.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });

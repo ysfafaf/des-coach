@@ -33,7 +33,7 @@ class UserController extends BaseController
     {
         $rules = [
             'name'     => 'required',
-            'email'    => 'required|valid_email|is_unique[users.email]',
+            'email'    => 'required|valid_email|is_unique[app_users.email]',
             'role'     => 'required|in_list[HOD,Admin,Supervisi,Karyawan]',
             'password' => 'required|min_length[6]'
         ];
@@ -60,7 +60,12 @@ class UserController extends BaseController
         ];
 
         $userModel = new UserModel();
-        $userModel->insert($data);
+        if (!$userModel->insert($data)) {
+            return $this->response->setJSON([
+                'status' => false,
+                'errors' => $userModel->errors()
+            ])->setStatusCode(500);
+        }
 
         unset($data['password']);
 

@@ -19,6 +19,7 @@ $routes->group('api', function ($routes) {
     // Coaching Sessions
     $routes->get('coaching', 'CoachingController::index');
     $routes->post('coaching', 'CoachingController::create');
+    $routes->put('coaching/(:segment)', 'CoachingController::update/$1');
     $routes->put('coaching/(:segment)/start', 'CoachingController::start/$1');
     $routes->put('coaching/(:segment)/end', 'CoachingController::end/$1');
 

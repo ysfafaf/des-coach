@@ -26,7 +26,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface UserManagementViewProps {
   users: User[];
   currentUser: User;
-  onAddUser: (user: Omit<User, 'id'>) => void;
+  onAddUser: (user: Omit<User, 'id'>) => Promise<boolean>;
   onUpdateUser: (id: string, updatedFields: Partial<User>) => void;
   onDeleteUser: (id: string) => void;
 }
@@ -96,15 +96,17 @@ export default function UserManagementView({
     setIsEditOpen(true);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.position) {
       alert('Mohon isi nama, email, dan jabatan!');
       return;
     }
-    onAddUser(formData);
-    setIsAddOpen(false);
-    resetForm();
+    const success = await onAddUser(formData);
+    if (success) {
+      setIsAddOpen(false);
+      resetForm();
+    }
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {

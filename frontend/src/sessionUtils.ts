@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CoachingSession, User } from './types';
+import { CoachingSession, Reply, User } from './types';
 
 function parseFollowUp(followUp: CoachingSession['followUp']): string[] | undefined {
   if (followUp == null) return undefined;
@@ -23,6 +23,11 @@ function toBoolean(value: unknown): boolean {
   return value === true || value === 1 || value === '1';
 }
 
+function parseReplies(replies: CoachingSession['replies']): Reply[] | undefined {
+  if (!replies || !Array.isArray(replies)) return undefined;
+  return replies;
+}
+
 export function normalizeSession(session: CoachingSession, users: User[]): CoachingSession {
   const employee = users.find(u => u.id === session.employeeId);
   const coach = users.find(u => u.id === session.coachId);
@@ -33,6 +38,7 @@ export function normalizeSession(session: CoachingSession, users: User[]): Coach
     coachName: session.coachName || coach?.name || 'Coach',
     isCompleted: toBoolean(session.isCompleted) || session.status === 'Completed',
     followUp: parseFollowUp(session.followUp),
+    replies: parseReplies(session.replies),
   };
 }
 

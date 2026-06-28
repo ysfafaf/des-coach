@@ -122,7 +122,7 @@ export default function App() {
   };
 
   // CRUD User Management (Admin specific)
-  const handleAddUser = async (userFields: Omit<User, 'id'>) => {
+  const handleAddUser = async (userFields: Omit<User, 'id'>): Promise<boolean> => {
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
@@ -132,11 +132,18 @@ export default function App() {
       const data = await res.json();
       if (data.status) {
         setUsers(prev => [...prev, data.data]);
+        return true;
       } else {
-        alert('Gagal menambahkan user: ' + JSON.stringify(data.errors));
+        const msg = data.errors
+          ? Object.values(data.errors as Record<string, string>).join(', ')
+          : data.message || 'Unknown error';
+        alert('Gagal menambahkan user: ' + msg);
+        return false;
       }
     } catch (err) {
       console.error(err);
+      alert('Koneksi server gagal saat menambahkan user.');
+      return false;
     }
   };
 
@@ -231,14 +238,19 @@ export default function App() {
   // Rating & Review (Karyawan)
   const handleSubmitFeedback = async (id: string, ratingStars: number, feedbackCommentText: string, anon: boolean) => {
     try {
-      await fetch(`/api/coaching/${id}/end`, {
+      const res = await fetch(`/api/coaching/${id}/end`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: ratingStars, feedbackComment: feedbackCommentText, isAnonymous: anon })
       });
+      const data = await res.json();
+      if (!data.status) {
+        alert(data.message || 'Gagal mengirim feedback');
+        return;
+      }
       setSessions(prev => prev.map(s => {
         if (s.id === id) {
-          return { ...s, rating: ratingStars, feedbackComment: feedbackCommentText, isAnonymous: anon, replies: [] };
+          return { ...s, rating: ratingStars, feedbackComment: feedbackCommentText, isAnonymous: anon };
         }
         return s;
       }));
@@ -247,12 +259,55 @@ export default function App() {
     }
   };
 
+  // Edit scheduled session (HOD / Supervisi)
+  const handleUpdateSession = async (
+    id: string,
+    updates: Partial<CoachingSession>,
+    emailNotif?: { recipientEmail: string; subject: string; body: string }
+  ) => {
+    try {
+      const res = await fetch(`/api/coaching/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (data.status) {
+        setSessions(prev => prev.map(s => {
+          if (s.id === id) {
+            return normalizeSession({ ...s, ...data.data }, users);
+          }
+          return s;
+        }));
+
+        if (emailNotif) {
+          const newNotification: EmailNotification = {
+            id: `notif-${Date.now()}`,
+            recipientEmail: emailNotif.recipientEmail,
+            subject: emailNotif.subject,
+            body: emailNotif.body,
+            timestamp: new Date().toISOString(),
+            read: false
+          };
+          setNotifications(prev => [newNotification, ...prev]);
+        }
+        return true;
+      }
+      alert(data.message || 'Gagal memperbarui jadwal');
+      return false;
+    } catch (err) {
+      console.error(err);
+      alert('Koneksi server gagal');
+      return false;
+    }
+  };
+
   // Replies (HOD specific)
   const handleAddReply = async (sessionId: string, replyContent: string) => {
     if (!currentUser) return;
 
     try {
-      const res = await fetch(`/api/feedback/reply/${sessionId}`, {
+      const res = await fetch(`/api/feedback/${sessionId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ authorId: currentUser.id, content: replyContent })
@@ -276,6 +331,8 @@ export default function App() {
           }
           return s;
         }));
+      } else {
+        alert('Gagal mengirim balasan: ' + (data.message || JSON.stringify(data.errors)));
       }
     } catch (err) {
       console.error(err);
@@ -329,10 +386,12 @@ export default function App() {
         return (
           <CoachingView 
             currentUser={currentUser} 
+            users={users}
             sessions={sessions}
             onStartSession={handleStartSession}
             onEndSession={handleEndSession}
             onSubmitFeedback={handleSubmitFeedback}
+            onUpdateSession={handleUpdateSession}
           />
         );
       case 'histori':

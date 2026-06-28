@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, CoachingSession } from '../types';
-import { MEETING_ROOMS } from '../initialData';
+import { TOP_TOPICS, MEETING_ROOMS } from '../initialData';
 import { 
   Play, 
   Square, 
@@ -15,36 +15,47 @@ import {
   FileText, 
   CheckSquare, 
   Star, 
-  Sparkles, 
   Smile, 
   EyeOff, 
   Eye, 
-  FlameKindling,
   History,
-  TrendingUp,
   AlertCircle,
-  Users
+  Users,
+  Edit2,
+  X,
+  Save,
+  ArrowRightLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface CoachingViewProps {
   currentUser: User;
+  users: User[];
   sessions: CoachingSession[];
   onStartSession: (id: string) => void;
   onEndSession: (id: string, notes: string, followUp: string[]) => void;
   onSubmitFeedback: (id: string, rating: number, comment: string, isAnonymous: boolean) => void;
+  onUpdateSession: (
+    id: string,
+    updates: Partial<CoachingSession>,
+    emailNotif?: { recipientEmail: string; subject: string; body: string }
+  ) => Promise<boolean>;
 }
 
 export default function CoachingView({ 
-  currentUser, 
+  currentUser,
+  users,
   sessions, 
   onStartSession, 
   onEndSession, 
-  onSubmitFeedback 
+  onSubmitFeedback,
+  onUpdateSession
 }: CoachingViewProps) {
   
   const isCoach = currentUser.role === 'Supervisi' || currentUser.role === 'HOD';
+  const isHOD = currentUser.role === 'HOD';
   const isEmployee = currentUser.role === 'Karyawan';
+  const supervisiList = users.filter(u => u.role === 'Supervisi' && u.status === 'Active');
 
   // State for active session in progress (stopwatch timer)
   const [activeSessId, setActiveSessId] = useState<string | null>(null);
@@ -61,6 +72,19 @@ export default function CoachingView({
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+
+  // Edit session modal states (HOD / Supervisi)
+  const [editingSession, setEditingSession] = useState<CoachingSession | null>(null);
+  const [editTopic, setEditTopic] = useState('');
+  const [editCategory, setEditCategory] = useState(TOP_TOPICS[0]);
+  const [editDate, setEditDate] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
+  const [editMode, setEditMode] = useState<'Online' | 'Offline'>('Online');
+  const [editMeetingLink, setEditMeetingLink] = useState('');
+  const [editRoomName, setEditRoomName] = useState(MEETING_ROOMS[0]);
+  const [reassignToSupervisi, setReassignToSupervisi] = useState(false);
+  const [selectedSupervisiId, setSelectedSupervisiId] = useState('');
 
   // Filter sessions related to this user
   const mySessions = sessions.filter(s => {
@@ -163,6 +187,85 @@ export default function CoachingView({
     'Konseling profesional eksternal',
     'Selesai / Tuntas'
   ];
+
+  const handleOpenEdit = (sess: CoachingSession) => {
+    setEditingSession(sess);
+    setEditTopic(sess.topic);
+    setEditCategory(sess.category);
+    setEditDate(sess.date);
+    setEditStartTime(sess.startTime);
+    setEditEndTime(sess.endTime);
+    setEditMode(sess.mode);
+    setEditMeetingLink(sess.meetingLink || 'https://teams.microsoft.com/l/meetup-join/descoach-session');
+    setEditRoomName(sess.roomName || MEETING_ROOMS[0]);
+    setReassignToSupervisi(false);
+    setSelectedSupervisiId(supervisiList[0]?.id || '');
+  };
+
+  const handleCloseEdit = () => {
+    setEditingSession(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSession) return;
+
+    const [startH, startM] = editStartTime.split(':').map(Number);
+    const [endH, endM] = editEndTime.split(':').map(Number);
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+
+    if (durationMinutes <= 0) {
+      alert('Jam selesai harus setelah jam mulai.');
+      return;
+    }
+    if (durationMinutes > 120) {
+      alert('Durasi sesi coaching maksimal 2 jam.');
+      return;
+    }
+
+    if (reassignToSupervisi && !selectedSupervisiId) {
+      alert('Pilih supervisi tujuan pengalihan jadwal.');
+      return;
+    }
+
+    const updates: Partial<CoachingSession> = {
+      topic: editTopic,
+      category: editCategory,
+      date: editDate,
+      startTime: editStartTime,
+      endTime: editEndTime,
+      mode: editMode,
+      meetingLink: editMode === 'Online' ? editMeetingLink : undefined,
+      roomName: editMode === 'Offline' ? editRoomName : undefined,
+    };
+
+    let newCoachName = editingSession.coachName;
+    if (isHOD && reassignToSupervisi && selectedSupervisiId) {
+      updates.coachId = selectedSupervisiId;
+      const matchedSupervisi = supervisiList.find(u => u.id === selectedSupervisiId);
+      newCoachName = matchedSupervisi?.name || 'Supervisi';
+    }
+
+    const employee = users.find(u => u.id === editingSession.employeeId);
+    const emailNotif = employee ? {
+      recipientEmail: employee.email,
+      subject: `[DES-Coach] Jadwal Coaching Diperbarui: ${editTopic}`,
+      body: `Halo ${employee.name},\n\nCoach Anda (${newCoachName}) telah memperbarui jadwal sesi coaching:\n\n` +
+            `• Topik: ${editTopic}\n` +
+            `• Tanggal: ${editDate}\n` +
+            `• Waktu: ${editStartTime} - ${editEndTime} (WIB)\n` +
+            `• Metode: ${editMode}\n\n` +
+            `Mohon ikuti jadwal yang telah ditetapkan coach. Terima kasih.\n- Tim DES-Coach`
+    } : undefined;
+
+    const success = await onUpdateSession(editingSession.id, updates, emailNotif);
+    if (success) {
+      handleCloseEdit();
+      alert(reassignToSupervisi
+        ? 'Jadwal berhasil diperbarui dan dialihkan ke supervisi terpilih.'
+        : 'Jadwal sesi coaching berhasil diperbarui. Karyawan akan mengikuti jadwal baru.');
+    }
+  };
 
   // Resolve current active session object
   const currentActiveSess = sessions.find(s => s.id === activeSessId);
@@ -512,9 +615,15 @@ export default function CoachingView({
                    </div>
                  </div>
 
-                 {/* Controls for Coach: Mulai Sesi */}
+                 {/* Controls for Coach: Edit & Mulai Sesi */}
                  {isCoach && (
-                   <div className="border-t border-slate-100 pt-3.5 flex justify-end">
+                   <div className="border-t border-slate-100 pt-3.5 flex justify-end gap-2">
+                     <button
+                       onClick={() => handleOpenEdit(sess)}
+                       className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 border border-slate-200"
+                     >
+                       <Edit2 className="w-3.5 h-3.5 shrink-0" /> Edit Jadwal
+                     </button>
                      <button
                        onClick={() => handleStart(sess)}
                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
@@ -528,6 +637,191 @@ export default function CoachingView({
            </div>
          )}
        </div>
+
+      {/* EDIT SESSION MODAL (HOD / Supervisi) */}
+      <AnimatePresence>
+        {editingSession && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0">
+                <h3 className="text-slate-900 text-sm font-bold flex items-center gap-2">
+                  <Edit2 className="w-4 h-4 text-slate-800" /> Edit Permintaan Sesi
+                </h3>
+                <button
+                  onClick={handleCloseEdit}
+                  className="p-1 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-[11px] text-amber-800">
+                  Sesuaikan jadwal jika waktu yang diajukan karyawan tidak tersedia. Karyawan wajib mengikuti jadwal yang Anda tentukan.
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
+                  <p className="text-slate-500">Karyawan: <span className="font-semibold text-slate-900">{editingSession.employeeName}</span></p>
+                  <p className="text-slate-400">Coach saat ini: {editingSession.coachName}</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 text-xs font-semibold mb-1">Topik Sesi</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400"
+                    value={editTopic}
+                    onChange={(e) => setEditTopic(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 text-xs font-semibold mb-1">Kategori</label>
+                  <select
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-xs outline-none cursor-pointer"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                  >
+                    {TOP_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-600 text-xs font-semibold mb-1">Tanggal</label>
+                    <input
+                      type="date"
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 text-xs font-semibold mb-1">Jam Mulai</label>
+                    <input
+                      type="time"
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none"
+                      value={editStartTime}
+                      onChange={(e) => setEditStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 text-xs font-semibold mb-1">Jam Selesai</label>
+                    <input
+                      type="time"
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none"
+                      value={editEndTime}
+                      onChange={(e) => setEditEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 text-xs font-semibold mb-1">Metode Sesi</label>
+                  <select
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-xs outline-none cursor-pointer"
+                    value={editMode}
+                    onChange={(e) => setEditMode(e.target.value as 'Online' | 'Offline')}
+                  >
+                    <option value="Online">Online (Teams)</option>
+                    <option value="Offline">Offline (Ruangan)</option>
+                  </select>
+                </div>
+
+                {editMode === 'Online' ? (
+                  <div>
+                    <label className="block text-slate-600 text-xs font-semibold mb-1">Link Meeting</label>
+                    <input
+                      type="url"
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none"
+                      value={editMeetingLink}
+                      onChange={(e) => setEditMeetingLink(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-slate-600 text-xs font-semibold mb-1">Ruangan</label>
+                    <select
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-xs outline-none cursor-pointer"
+                      value={editRoomName}
+                      onChange={(e) => setEditRoomName(e.target.value)}
+                    >
+                      {MEETING_ROOMS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {isHOD && (
+                  <div className="border-t border-slate-100 pt-4 space-y-3">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded text-slate-900 border-slate-300 mt-0.5 cursor-pointer"
+                        checked={reassignToSupervisi}
+                        onChange={(e) => setReassignToSupervisi(e.target.checked)}
+                      />
+                      <div>
+                        <span className="text-slate-700 text-xs font-bold flex items-center gap-1.5">
+                          <ArrowRightLeft className="w-3.5 h-3.5" /> Alihkan ke Supervisi
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          Centang jika jadwal perlu ditangani oleh supervisi lain karena Anda tidak tersedia.
+                        </span>
+                      </div>
+                    </label>
+
+                    {reassignToSupervisi && (
+                      <div>
+                        <label className="block text-slate-600 text-xs font-semibold mb-1">Pilih Supervisi</label>
+                        <select
+                          required
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-xs outline-none cursor-pointer"
+                          value={selectedSupervisiId}
+                          onChange={(e) => setSelectedSupervisiId(e.target.value)}
+                        >
+                          {supervisiList.length === 0 ? (
+                            <option value="">Tidak ada supervisi tersedia</option>
+                          ) : (
+                            supervisiList.map(spv => (
+                              <option key={spv.id} value={spv.id}>{spv.name} — {spv.position}</option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={handleCloseEdit}
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" /> Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

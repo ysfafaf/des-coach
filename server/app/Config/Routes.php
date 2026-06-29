@@ -17,10 +17,18 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes){
     $routes->get('dashboard', 'DashboardController::index');
     $routes->post('dashboard/import', 'DashboardController::importExcel');
 
-    $routes->get('jadwal', 'JadwalController::index');              // Lihat jadwal bulanan (GET)
-    $routes->post('jadwal', 'JadwalController::create');            // Tambah jadwal baru (POST)
-    $routes->put('jadwal/(:num)', 'JadwalController::update/$1');   // Edit/Update jadwal berdasarkan ID (PUT)
-    $routes->delete('jadwal/(:num)', 'JadwalController::delete/$1'); // Hapus jadwal berdasarkan ID (DELETE)
+    $routes->get('jadwal', 'JadwalController::index');          
+    $routes->post('jadwal', 'JadwalController::create');            
+    $routes->put('jadwal/(:num)', 'JadwalController::update/$1');   
+    $routes->delete('jadwal/(:num)', 'JadwalController::delete/$1'); 
+
+    $routes->get('coaching/antrean', 'CoachingController::getAntrean'); 
+    $routes->post('coaching/start', 'CoachingController::startCoaching'); 
+    $routes->post('coaching/end', 'CoachingController::endCoaching');
+
+    $routes->get('feedback/supervisi', 'FeedbackController::getSupervisiList'); 
+    $routes->get('feedback/comments', 'FeedbackController::getCommentsByCoach'); 
+    $routes->post('feedback/reply', 'FeedbackController::sendReply');
 });
 
 

@@ -16,6 +16,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes){
     $routes->resource('users', ['controller' => 'UserController']);
     $routes->get('dashboard', 'DashboardController::index');
     $routes->post('dashboard/import', 'DashboardController::importExcel');
+
+    $routes->get('jadwal', 'JadwalController::index');              // Lihat jadwal bulanan (GET)
+    $routes->post('jadwal', 'JadwalController::create');            // Tambah jadwal baru (POST)
+    $routes->put('jadwal/(:num)', 'JadwalController::update/$1');   // Edit/Update jadwal berdasarkan ID (PUT)
+    $routes->delete('jadwal/(:num)', 'JadwalController::delete/$1'); // Hapus jadwal berdasarkan ID (DELETE)
 });
 
 

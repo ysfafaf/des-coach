@@ -5,17 +5,17 @@
 
 import React, { useState } from 'react';
 import { User, CoachingSession } from '../types';
-import { 
-  History, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Video, 
-  Star, 
-  FileText, 
-  MessageSquare, 
-  X, 
-  CheckCircle2, 
+import {
+  History,
+  Search,
+  Filter,
+  MapPin,
+  Video,
+  Star,
+  FileText,
+  MessageSquare,
+  X,
+  CheckCircle2,
   TrendingUp,
   UserCheck
 } from 'lucide-react';
@@ -70,8 +70,8 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
     const coachName = s.coachName ?? '';
     const topic = s.topic ?? '';
     const matchesSearch = employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          coachName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          topic.toLowerCase().includes(searchQuery.toLowerCase());
+      coachName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      topic.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'Semua' || s.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -97,7 +97,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Histori Coaching & Konseling</h1>
           <p className="text-xs text-slate-500 mt-1">
-            {isHOD 
+            {isHOD
               ? 'Arsip digital bimbingan departemen. Pantau perkembangan diskusi kerja dan analisis kepuasan bimbingan karyawan.'
               : 'Daftar riwayat bimbingan yang telah diselesaikan beserta kesimpulan rencana tindak lanjut.'}
           </p>
@@ -108,21 +108,19 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
           <div className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex">
             <button
               onClick={() => setHodTab('your')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                hodTab === 'your' 
-                  ? 'bg-slate-900 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${hodTab === 'your'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               Sesi Anda
             </button>
             <button
               onClick={() => setHodTab('other')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                hodTab === 'other' 
-                  ? 'bg-slate-900 text-white shadow-xs' 
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${hodTab === 'other'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               Coach Lainnya (Supervisi)
             </button>
@@ -166,13 +164,13 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSessions.map(session => (
-            <div 
+            <div
               key={session.id}
               className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-300 transition-all duration-200 shadow-sm"
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono font-bold">
-                  <span>{session.id.toUpperCase()}</span>
+                  <span></span>
                   <span>{session.date}</span>
                 </div>
 
@@ -209,13 +207,17 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
               {/* ACTION TOGGLES */}
               <div className="border-t border-slate-100 pt-4 mt-4 flex items-center justify-between gap-2.5">
                 {/* Rating Display */}
-                {session.rating ? (
-                  <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded-lg border border-amber-200">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-                    <span className="text-[11px] font-black font-mono">{session.rating}</span>
-                  </div>
+                {!isSupervisi ? (
+                  session.rating ? (
+                    <div className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+                      <span className="text-[11px] font-black font-mono">{session.rating}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">Belum dinilai</span>
+                  )
                 ) : (
-                  <span className="text-[10px] text-slate-400 italic">Belum dinilai</span>
+                  <span className="text-[10px] text-slate-400 italic">Selesai</span>
                 )}
 
                 {/* View Details triggers */}
@@ -227,7 +229,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                     <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" /> Catatan
                   </button>
 
-                  {(session.feedbackComment || isHOD) && (
+                  {!isSupervisi && (session.feedbackComment || isHOD) && (
                     <button
                       onClick={() => handleOpenModal(session, 'feedback')}
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors border border-slate-200"
@@ -267,7 +269,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                     </>
                   )}
                 </h3>
-                <button 
+                <button
                   onClick={handleCloseModal}
                   className="p-1 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
@@ -317,13 +319,12 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                       <span className="text-xs font-bold text-slate-700">Skor Rating</span>
                       <div className="flex items-center gap-1.5">
                         {[1, 2, 3, 4, 5].map(starNum => (
-                          <Star 
-                            key={starNum} 
-                            className={`w-4.5 h-4.5 ${
-                              starNum <= (selectedSession.rating || 0) 
-                                ? 'fill-amber-400 text-amber-400' 
-                                : 'text-slate-200'
-                            }`} 
+                          <Star
+                            key={starNum}
+                            className={`w-4.5 h-4.5 ${starNum <= (selectedSession.rating || 0)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-200'
+                              }`}
                           />
                         ))}
                       </div>
@@ -338,6 +339,20 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                         {selectedSession.isAnonymous ? 'Sesi dikirim secara Anonim (Nama disembunyikan)' : `Oleh: ${selectedSession.employeeName}`}
                       </span>
                     </div>
+                    {/* HOD Replies */}
+                    {selectedSession.replies && selectedSession.replies.length > 0 && (
+                      <div className="space-y-2 mt-4 pt-4 border-t border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Balasan HOD</span>
+                        <div className="space-y-2">
+                          {selectedSession.replies.map(reply => (
+                            <div key={reply.id} className="bg-blue-50 border border-blue-100 p-3 rounded-xl space-y-1">
+                              <span className="text-[10px] font-bold text-blue-800 block">{reply.authorName} (HOD) - {new Date(reply.timestamp).toLocaleString()}</span>
+                              <p className="text-xs text-blue-900 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

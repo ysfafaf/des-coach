@@ -20,7 +20,8 @@ function parseFollowUp(followUp: CoachingSession['followUp']): string[] | undefi
 }
 
 function toBoolean(value: unknown): boolean {
-  return value === true || value === 1 || value === '1';
+  if (value === true || value === 1 || value === '1' || value === 't' || value === 'true') return true;
+  return false;
 }
 
 function parseReplies(replies: CoachingSession['replies']): Reply[] | undefined {
@@ -37,6 +38,7 @@ export function normalizeSession(session: CoachingSession, users: User[]): Coach
     employeeName: session.employeeName || employee?.name || 'Karyawan',
     coachName: session.coachName || coach?.name || 'Coach',
     isCompleted: toBoolean(session.isCompleted) || session.status === 'Completed',
+    isAnonymous: toBoolean(session.isAnonymous),
     followUp: parseFollowUp(session.followUp),
     replies: parseReplies(session.replies),
   };

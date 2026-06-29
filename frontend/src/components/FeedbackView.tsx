@@ -5,16 +5,16 @@
 
 import React, { useState } from 'react';
 import { User, CoachingSession, Reply } from '../types';
-import { 
-  MessageSquareHeart, 
-  Search, 
-  Star, 
-  MessageCircle, 
-  CornerDownRight, 
-  Send, 
-  UserCheck, 
-  EyeOff, 
-  Eye, 
+import {
+  MessageSquareHeart,
+  Search,
+  Star,
+  MessageCircle,
+  CornerDownRight,
+  Send,
+  UserCheck,
+  EyeOff,
+  Eye,
   Clock,
   Sparkles,
   Award,
@@ -31,7 +31,7 @@ interface FeedbackViewProps {
 
 export default function FeedbackView({ currentUser, users, sessions, onAddReply }: FeedbackViewProps) {
   const coaches = users.filter(u => u.role === 'Supervisi' || u.role === 'HOD');
-  
+
   // State for selected coach to analyze
   const [selectedCoachId, setSelectedCoachId] = useState<string>(coaches[0]?.id || '');
   const [replyInputSessionId, setReplyInputSessionId] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
   // Calculate stats for the selected coach
   const coachSessions = feedbackSessions.filter(s => s.coachId === selectedCoachId);
   const averageRating = coachSessions.length > 0
-    ? (coachSessions.reduce((acc, s) => acc + (s.rating || 0), 0) / coachSessions.length).toFixed(1)
+    ? (coachSessions.reduce((acc, s) => acc + Number(s.rating || 0), 0) / coachSessions.length).toFixed(1)
     : '0.0';
 
   // State to submit reply
@@ -100,20 +100,19 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
           {currentCoach && (
             <div className="bg-slate-50 border border-slate-200 p-5 rounded-lg text-center space-y-3">
               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Rating Rata-rata</span>
-              <div className="text-3xl font-black text-slate-900 tracking-tight font-mono flex items-center justify-center gap-2">
+              <div className="text-3xl font-black text-slate-900 tracking-tight font-sans flex items-center justify-center gap-2">
                 {averageRating} <span className="text-slate-400 text-base font-normal">/ 5.0</span>
               </div>
-              
+
               {/* Star graphics representation */}
               <div className="flex justify-center gap-0.5">
                 {[1, 2, 3, 4, 5].map(starNum => {
                   const roundedAvg = Math.round(Number(averageRating));
                   return (
-                    <Star 
-                      key={starNum} 
-                      className={`w-4 h-4 ${
-                        starNum <= roundedAvg ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
-                      }`} 
+                    <Star
+                      key={starNum}
+                      className={`w-4 h-4 ${starNum <= roundedAvg ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                        }`}
                     />
                   );
                 })}
@@ -157,8 +156,8 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
               </div>
             ) : (
               coachSessions.map(sess => (
-                <div 
-                  key={sess.id} 
+                <div
+                  key={sess.id}
                   className="bg-slate-50 border border-slate-200 p-4.5 rounded-lg space-y-3 hover:border-slate-300 transition-all duration-150"
                 >
                   {/* Reviewer Name and Rating stars */}
@@ -174,7 +173,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
                           <Eye className="w-3.5 h-3.5 text-slate-400" title="Identitas Terbuka" />
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium">Sesi: {sess.topic}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Sesi: {sess.isAnonymous ? 'Topik Dirahasiakan' : sess.topic}</p>
                     </div>
 
                     <div className="flex items-center gap-1 bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">
@@ -210,7 +209,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
                   {/* Reply Button Trigger / Inline Form */}
                   <div className="flex justify-end pt-1">
                     {replyInputSessionId === sess.id ? (
-                      <form 
+                      <form
                         onSubmit={(e) => handleReplySubmit(e, sess.id)}
                         className="w-full flex gap-2 items-center"
                       >

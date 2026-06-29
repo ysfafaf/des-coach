@@ -19,7 +19,8 @@ import {
   SlidersHorizontal,
   Plus,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  User as UserIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -248,8 +249,8 @@ export default function UserManagementView({
                       {/* Name Card */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-600 shrink-0 select-none">
-                            {user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0 select-none">
+                            <UserIcon className="w-5 h-5" />
                           </div>
                           <div>
                             <span className="block font-bold text-slate-800">{user.name}</span>
@@ -383,6 +384,7 @@ export default function UserManagementView({
                       type="text"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-blue-500 transition-colors"
                       placeholder="08xxxxxxxx"
+                      maxLength={15}
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
@@ -530,6 +532,7 @@ export default function UserManagementView({
                     <input
                       type="text"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-teal-500 transition-colors"
+                      maxLength={15}
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />

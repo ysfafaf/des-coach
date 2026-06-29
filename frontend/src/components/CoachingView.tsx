@@ -33,7 +33,7 @@ interface CoachingViewProps {
   users: User[];
   sessions: CoachingSession[];
   onStartSession: (id: string) => void;
-  onEndSession: (id: string, notes: string, followUp: string[]) => void;
+  onEndSession: (id: string, notes: string, followUp: string[]) => Promise<void>;
   onSubmitFeedback: (id: string, rating: number, comment: string, isAnonymous: boolean) => void;
   onUpdateSession: (
     id: string,
@@ -133,7 +133,7 @@ export default function CoachingView({
     setSelectedFollowUps([]);
   };
 
-  const handleEnd = (e: React.FormEvent) => {
+  const handleEnd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSessId) return;
 
@@ -142,7 +142,7 @@ export default function CoachingView({
       return;
     }
 
-    onEndSession(activeSessId, notes, selectedFollowUps);
+    await onEndSession(activeSessId, notes, selectedFollowUps);
     setActiveSessId(null);
     setNotes('');
     setSelectedFollowUps([]);

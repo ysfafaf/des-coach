@@ -6,16 +6,16 @@
 import React, { useState } from 'react';
 import { User, CoachingSession } from '../types';
 import { TOP_TOPICS, MEETING_ROOMS } from '../initialData';
-import { 
-  Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  X, 
-  Video, 
-  MapPin, 
-  Clock, 
-  UserSquare2, 
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Video,
+  MapPin,
+  Clock,
+  UserSquare2,
   Briefcase,
   Sparkles,
   CheckCircle2
@@ -30,17 +30,22 @@ interface CalendarViewProps {
 }
 
 export default function CalendarView({ currentUser, users, sessions, onAddSession }: CalendarViewProps) {
-  // Calendar Navigation: e.g. June 2026 (Month 5, index-based)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(5); // June
+  const today = new Date();
+
+  // Calendar Navigation: uses actual current date
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
 
   // "Buat Jadwal" Modal State
   const [isOpenBooking, setIsOpenBooking] = useState(false);
-  
+
   // Form Booking states
   const [topic, setTopic] = useState('');
   const [category, setCategory] = useState(TOP_TOPICS[0]);
-  const [selectedDate, setSelectedDate] = useState('2026-06-28');
+
+  // local time formatting for default selectedDate
+  const localDateStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(localDateStr);
   const [startTime, setStartTime] = useState('13:00');
   const [endTime, setEndTime] = useState('14:30');
   const [targetUserId, setTargetUserId] = useState(''); // employee or coach ID
@@ -89,6 +94,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
   // Determine selectable users depending on who is booking
   const isEmployee = currentUser.role === 'Karyawan';
   const isCoach = currentUser.role === 'Supervisi' || currentUser.role === 'HOD';
+  const isSupervisi = currentUser.role === 'Supervisi';
   const isAdmin = currentUser.role === 'Admin';
 
   const potentialCoaches = users.filter(u => u.role === 'Supervisi' || u.role === 'HOD');
@@ -152,28 +158,28 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
     // Construct Email Notification Detail (Simulated)
     const targetCoach = users.find(u => u.id === coachId);
     const recipientEmail = targetCoach ? targetCoach.email : 'coach@desnet.id';
-    
+
     let emailSubject = `[DES-Coach] Sesi Coaching Baru Terjadwal: ${employeeName}`;
     let emailBody = '';
 
     if (mode === 'Online') {
       emailBody = `Halo ${coachName},\n\nSesi coaching baru telah dijadwalkan oleh karyawan Anda:\n\n` +
-                  `• Karyawan: ${employeeName}\n` +
-                  `• Topik Sesi: ${topic}\n` +
-                  `• Kategori: ${category}\n` +
-                  `• Waktu: ${selectedDate} pukul ${startTime} - ${endTime}\n` +
-                  `• Metode: ONLINE (Microsoft Teams)\n` +
-                  `• Tautan Sesi: ${meetingLink}\n\n` +
-                  `Mohon hadir tepat waktu sesuai jadwal yang tertera. Terima kasih.\n- Tim DES-Coach`;
+        `• Karyawan: ${employeeName}\n` +
+        `• Topik Sesi: ${topic}\n` +
+        `• Kategori: ${category}\n` +
+        `• Waktu: ${selectedDate} pukul ${startTime} - ${endTime}\n` +
+        `• Metode: ONLINE (Microsoft Teams)\n` +
+        `• Tautan Sesi: ${meetingLink}\n\n` +
+        `Mohon hadir tepat waktu sesuai jadwal yang tertera. Terima kasih.\n- Tim DES-Coach`;
     } else {
       emailBody = `Halo ${coachName},\n\nSesi coaching baru telah dijadwalkan oleh karyawan Anda:\n\n` +
-                  `• Karyawan: ${employeeName}\n` +
-                  `• Topik Sesi: ${topic}\n` +
-                  `• Kategori: ${category}\n` +
-                  `• Waktu: ${selectedDate} pukul ${startTime} - ${endTime}\n` +
-                  `• Metode: OFFLINE (Tatap Muka di Kantor)\n` +
-                  `• Ruangan: ${roomName}\n\n` +
-                  `Mohon hadir tepat waktu di ruangan rapat yang telah dipesan. Terima kasih.\n- Tim DES-Coach`;
+        `• Karyawan: ${employeeName}\n` +
+        `• Topik Sesi: ${topic}\n` +
+        `• Kategori: ${category}\n` +
+        `• Waktu: ${selectedDate} pukul ${startTime} - ${endTime}\n` +
+        `• Metode: OFFLINE (Tatap Muka di Kantor)\n` +
+        `• Ruangan: ${roomName}\n\n` +
+        `Mohon hadir tepat waktu di ruangan rapat yang telah dipesan. Terima kasih.\n- Tim DES-Coach`;
     }
 
     const newSession: CoachingSession = {
@@ -215,13 +221,13 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
     const formattedMonth = String(currentMonth + 1).padStart(2, '0');
     const formattedDay = String(dateNum).padStart(2, '0');
     const checkString = `${currentYear}-${formattedMonth}-${formattedDay}`;
-    
+
     return sessions.filter(s => s.date === checkString);
   };
 
   return (
     <div className="space-y-6">
-      
+
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200 p-6 rounded-xl shadow-xs">
         <div>
@@ -231,8 +237,8 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
           </p>
         </div>
 
-        {/* Create button, disabled for admin */}
-        {!isAdmin && (
+        {/* Create button, disabled for admin and supervisi */}
+        {!isAdmin && !isSupervisi && (
           <button
             onClick={handleOpenBooking}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
@@ -244,8 +250,8 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
       </div>
 
       {/* CALENDAR BLOCK */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-        
+      <div className="bg-white border border-slate-200 rounded-xl overflow-visible shadow-xs">
+
         {/* Month Navigation Control */}
         <div className="p-5 bg-slate-50 border-b border-slate-200/85 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -283,21 +289,36 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
         <div className="grid grid-cols-7 bg-slate-200 divide-x divide-y divide-slate-200 border-b border-slate-200">
           {calendarCells.map((dateNum, idx) => {
             const hasSess = dateNum ? getSessionsForDate(dateNum) : [];
-            const isToday = dateNum === 27 && currentMonth === 5 && currentYear === 2026; // matches local meta 27 June 2026
+            const isToday = dateNum === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
 
             return (
               <div
                 key={idx}
-                className={`min-h-28 p-2.5 flex flex-col justify-between transition-colors ${
-                  dateNum ? 'bg-white' : 'bg-slate-50/40 select-none'
-                } ${isToday ? 'bg-blue-50/40 relative ring-1 ring-blue-500/30' : ''}`}
+                className={`group min-h-28 p-2.5 flex flex-col justify-between transition-colors relative ${dateNum ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/40 select-none'
+                  } ${isToday ? 'bg-blue-50/40 ring-1 ring-blue-500/30' : ''}`}
               >
+                {/* Custom Tooltip */}
+                {hasSess.length > 0 && (
+                  <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-52 bg-slate-50 text-white p-3 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45 rounded-sm" />
+                    <div className="font-bold text-slate-900 mb-1 border-b border-slate-700 pb-1.5 text-center text-[11px] uppercase tracking-wider">Jadwal Sesi</div>
+                    <ul className="space-y-2 text-[10px] pt-1">
+                      {hasSess.map((s, i) => (
+                        <li key={i} className="leading-tight">
+                          <span className="font-bold text-slate-900">{s.startTime}</span> - <span className="font-medium text-white">{s.topic}</span>
+                          <div className="text-slate-400 mt-0.5 flex items-center gap-1">
+                            <UserSquare2 className="w-3 h-3" /> {s.coachName}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {/* Date marker */}
                 <div className="flex justify-between items-center mb-1">
                   {dateNum ? (
-                    <span className={`text-xs font-bold font-mono px-1.5 py-0.5 rounded ${
-                      isToday ? 'bg-blue-600 text-white font-extrabold' : 'text-slate-700'
-                    }`}>
+                    <span className={`text-xs font-bold font-mono px-1.5 py-0.5 rounded ${isToday ? 'bg-blue-600 text-white font-extrabold' : 'text-slate-700'
+                      }`}>
                       {dateNum}
                     </span>
                   ) : <span />}
@@ -315,11 +336,10 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                     return (
                       <div
                         key={sess.id}
-                        className={`p-1 rounded text-[9px] font-medium leading-tight truncate border ${
-                          isSessCompleted 
-                            ? 'bg-slate-50 border-slate-200 text-slate-400 line-through' 
-                            : 'bg-slate-900 border-slate-950 text-white font-semibold'
-                        }`}
+                        className={`p-1 rounded text-[9px] font-medium leading-tight truncate border ${isSessCompleted
+                          ? 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                          : 'bg-slate-900 border-slate-950 text-white font-semibold'
+                          }`}
                         title={`${sess.topic} (${sess.startTime})`}
                       >
                         <span className="font-bold">{sess.startTime}</span> {sess.topic}
@@ -353,7 +373,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                 <h3 className="text-slate-900 text-sm font-bold flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-slate-900" /> Atur Sesi Coaching Baru
                 </h3>
-                <button 
+                <button
                   onClick={() => setIsOpenBooking(false)}
                   className="p-1 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                 >
@@ -363,7 +383,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
 
               {/* Modal Form */}
               <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
-                
+
                 {/* User Selector depending on Role */}
                 {isEmployee ? (
                   <div>

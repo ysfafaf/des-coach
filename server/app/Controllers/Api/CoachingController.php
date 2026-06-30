@@ -78,20 +78,23 @@ class CoachingController extends ResourceController
             ], 200);
         }
 
-        // Data insert baru sesuai constraint database (started_at diisi waktu sekarang, ended_at null)
         $sessionData = [
             'schedule_id' => $scheduleId,
-            'notes'       => '', // Default kosong, diisi saat proses ongoing / end
+            'notes'       => '',
             'started_at'  => date('Y-m-d H:i:s'),
             'ended_at'    => null,
-            'status'      => 'ongoing' // Menyesuaikan nilai default enum dari database kamu
+            'status'      => 'ongoing'
         ];
 
         if ($this->sessionModel->insert($sessionData)) {
             $sessionId = $this->sessionModel->getInsertID();
+
+            // Update status jadwal menjadi 'ongoing'
+            $this->scheduleModel->update($scheduleId, ['status' => 'ongoing']);
+
             return $this->respondCreated([
-                'status' => 210,
-                'message' => 'Sesi coaching berhasil dimulai.',
+                'status'     => 201,
+                'message'    => 'Sesi coaching berhasil dimulai.',
                 'session_id' => $sessionId
             ]);
         }
@@ -106,49 +109,49 @@ class CoachingController extends ResourceController
     public function endCoaching()
     {
         $input = $this->request->getJSON(true);
-        $sessionId = $input['session_id'] ?? null;
+        $scheduleId = $input['session_id'] ?? null; // Frontend actually sends schedule_id
         $notes     = $input['notes'] ?? '';
         $followups = $input['followups'] ?? []; // Berupa array string dari pilihan checkbox frontend
         $isFromCoach = $input['is_from_coach'] ?? true;
 
-        if (!$sessionId) {
+        if (!$scheduleId) {
             return $this->fail('Session ID tidak ditemukan.', 400);
         }
 
-        // 1. Ambil data sesi untuk memastikan validitas waktu started_at
-        $session = $this->sessionModel->find($sessionId);
+        // 1. Ambil data sesi untuk memastikan validitas waktu started_at berdasarkan schedule_id
+        $session = $this->sessionModel->where('schedule_id', $scheduleId)->first();
         if (!$session) {
             return $this->failNotFound('Sesi coaching tidak ditemukan.');
         }
+        
+        $sessionId = $session['id'];
 
-        // 2. Transaksi Database agar aman saat input bercabang (Sesi & Follow-up)
+        // 2. Transaksi Database
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // Update Tabel coaching_sessions (Mengisi notes & mengeset ended_at > started_at)
+        // Update coaching_sessions
         $this->sessionModel->update($sessionId, [
             'notes'    => $notes,
-            'ended_at' => date('Y-m-d H:i:s'), // Lolos constraint chk_session_time
-            'status'   => 'ongoing' // Sesuaikan jika ada status 'completed' di enum database kamu
+            'ended_at' => date('Y-m-d H:i:s'),
+            'status'   => 'done'
         ]);
 
-        // Simpan multiple follow-up items jika ada checklist yang terpilih
+        // Simpan multiple follow-up items
         if (!empty($followups) && is_array($followups)) {
             foreach ($followups as $item) {
-                if (!empty($item)) {
+                if (!empty(trim($item))) {
                     $this->followupModel->insert([
                         'session_id'    => $sessionId,
                         'followup_item' => $item,
-                        'is_from_coach' => $isFromCoach
                     ]);
                 }
             }
         }
 
-        // Otomatis ubah status di tabel schedules menjadi selesai/diarsipkan (jika diperlukan)
-        // Agar rekor ini menghilang dari list antrean dan berpindah ke history page
+        // Update status di schedules menjadi 'done'
         $this->scheduleModel->update($session['schedule_id'], [
-            'status' => 'pending' // Kamu bisa mengubah status schedule di sini ke enum selesai jika ada, misal 'completed'
+            'status' => 'done'
         ]);
 
         $db->transComplete();

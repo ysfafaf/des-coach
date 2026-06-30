@@ -46,7 +46,7 @@ class UserController extends ResourceController
         }
 
         // Ambil semua data user, sembunyikan password_hash demi keamanan
-        $users = $this->userModel->select('id, name, email, role, is_active, created_at')->findAll();
+        $users = $this->userModel->select('id, name, email, role, is_active, phone, position, gender, created_at')->findAll();
         
         return $this->respond([
             'status' => 200,
@@ -78,8 +78,11 @@ class UserController extends ResourceController
             'name'          => $data['name'] ?? 'User Baru',
             'email'         => $data['email'],
             'password_hash' => password_hash($data['password'], PASSWORD_BCRYPT),
-            'role'          => $data['role'], 
-            'is_active'     => $data['is_active'] ?? true
+            'role'          => strtolower($data['role']),
+            'is_active'     => $data['is_active'] ?? true,
+            'phone'         => $data['phone'] ?? null,
+            'position'      => $data['position'] ?? null,
+            'gender'        => $data['gender'] ?? 'Laki-laki',
         ]);
 
         return $this->respondCreated([
@@ -102,9 +105,12 @@ class UserController extends ResourceController
 
         $data = $this->request->getJSON(true);
         $updateData = [];
-        if (!empty($data['name'])) $updateData['name'] = $data['name'];
-        if (!empty($data['role'])) $updateData['role'] = $data['role'];
+        if (!empty($data['name']))     $updateData['name']     = $data['name'];
+        if (!empty($data['role']))     $updateData['role']     = strtolower($data['role']);
         if (isset($data['is_active'])) $updateData['is_active'] = $data['is_active'];
+        if (isset($data['phone']))     $updateData['phone']    = $data['phone'];
+        if (isset($data['position']))  $updateData['position'] = $data['position'];
+        if (isset($data['gender']))    $updateData['gender']   = $data['gender'];
         
         if (!empty($data['password'])) {
             $updateData['password_hash'] = password_hash($data['password'], PASSWORD_BCRYPT);

@@ -92,20 +92,34 @@ class FeedbackController extends ResourceController
     {
         $input = $this->request->getJSON(true);
 
-        $feedbackId = $input['feedback_id'] ?? null;
-        $repliedBy  = $input['replied_by'] ?? null; // ID HOD yang membalas (Bisa didapat dari session/token nantinya)
+        $scheduleId = $input['feedback_id'] ?? null; // Frontend sends schedule_id here
+        $repliedBy  = $input['replied_by'] ?? null;
         $replyText  = $input['reply'] ?? null;
 
-        // Validasi input kosong
-        if (!$feedbackId || !$repliedBy || empty(trim($replyText))) {
+        if (!$scheduleId || !$repliedBy || empty(trim($replyText))) {
             return $this->fail('feedback_id, replied_by, dan isi reply tidak boleh kosong.', 400);
         }
+
+        // Cari feedback_id yang sebenarnya berdasarkan schedule_id
+        $sessionModel = new \App\Models\CoachingSessionModel();
+        $session = $sessionModel->where('schedule_id', $scheduleId)->first();
+        
+        if (!$session) {
+            return $this->failNotFound('Sesi coaching tidak ditemukan.');
+        }
+        
+        $feedback = $this->feedbackModel->where('session_id', $session['id'])->first();
+        
+        if (!$feedback) {
+            return $this->failNotFound('Feedback belum diberikan oleh karyawan.');
+        }
+        
+        $feedbackId = $feedback['id'];
 
         $replyData = [
             'feedback_id' => $feedbackId,
             'replied_by'  => $repliedBy,
             'reply'       => $replyText,
-            'created_at'  => date('Y-m-d H:i:s')
         ];
 
         if ($this->replyModel->insert($replyData)) {
@@ -116,5 +130,65 @@ class FeedbackController extends ResourceController
         }
 
         return $this->fail('Gagal menyimpan balasan komentar.', 500);
+    }
+
+    /**
+     * 4. POST FEEDBACK DARI KARYAWAN SETELAH SESI
+     * POST /api/feedback
+     */
+    public function submitFeedback()
+    {
+        $input = $this->request->getJSON(true);
+
+        $scheduleId  = $input['session_id']   ?? null; // Frontend sends schedule_id here
+        $employeeId  = $input['employee_id']  ?? null;
+        $coachId     = $input['coach_id']     ?? null;
+        $rating      = $input['rating']       ?? null;
+        $comment     = $input['comment']      ?? '';
+        $isAnonymous = $input['is_anonymous'] ?? false;
+
+        if (!$scheduleId || !$employeeId || !$coachId || !$rating) {
+            return $this->fail('session_id, employee_id, coach_id, dan rating wajib diisi.', 400);
+        }
+
+        $sessionModel = new \App\Models\CoachingSessionModel();
+        $session = $sessionModel->where('schedule_id', $scheduleId)->first();
+        if (!$session) {
+            return $this->failNotFound('Sesi coaching tidak ditemukan.');
+        }
+        $sessionId = $session['id'];
+
+        $ratingInt = (int) $rating;
+        if ($ratingInt < 1 || $ratingInt > 5) {
+            return $this->fail('Rating harus berada di antara 1 hingga 5.', 400);
+        }
+
+        // Cek apakah feedback untuk sesi ini dari karyawan yang sama sudah ada
+        $existing = $this->feedbackModel
+            ->where('session_id', $sessionId)
+            ->where('employee_id', $employeeId)
+            ->first();
+
+        if ($existing) {
+            return $this->fail('Anda sudah memberikan feedback untuk sesi ini.', 400);
+        }
+
+        $feedbackData = [
+            'session_id'   => $sessionId,
+            'employee_id'  => $employeeId,
+            'coach_id'     => $coachId,
+            'rating'       => $ratingInt,
+            'comment'      => $comment,
+            'is_anonymous' => (bool) $isAnonymous,
+        ];
+
+        if ($this->feedbackModel->insert($feedbackData)) {
+            return $this->respondCreated([
+                'status'  => 201,
+                'message' => 'Feedback berhasil dikirimkan. Terima kasih!'
+            ]);
+        }
+
+        return $this->fail('Gagal menyimpan feedback.', 500);
     }
 }

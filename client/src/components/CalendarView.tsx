@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, CoachingSession } from '../types';
 import { TOP_TOPICS, MEETING_ROOMS } from '../initialData';
 import {
@@ -21,7 +21,7 @@ interface CalendarViewProps {
   currentUser: User;
   users: User[];
   sessions: CoachingSession[];
-  onAddSession: (newSession: CoachingSession) => void;
+  onAddSession: (newSession: CoachingSession) => Promise<boolean>;
 }
 
 export default function CalendarView({ currentUser, users, sessions, onAddSession }: CalendarViewProps) {
@@ -40,6 +40,8 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
   const [meetingLink, setMeetingLink] = useState('https://teams.microsoft.com/l/meetup-join/descoach-new-session');
   const [roomName, setRoomName] = useState(MEETING_ROOMS[0]);
   const [reminderMinutes, setReminderMinutes] = useState(30);
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const monthsList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -73,7 +75,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
     setIsOpenBooking(true);
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) { alert('Topik coaching tidak boleh kosong.'); return; }
     const [startH, startM] = startTime.split(':').map(Number);
@@ -93,8 +95,6 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
       employeeName = users.find(u => u.id === targetUserId)?.name || 'Karyawan';
     }
 
-    const targetCoach = users.find(u => u.id === coachId);
-
     const newSession: CoachingSession = {
       id: `ses-${Date.now()}`,
       employeeId, employeeName, coachId, coachName,
@@ -108,8 +108,8 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
       status: 'Scheduled',
     };
 
-    onAddSession(newSession);
-    setIsOpenBooking(false);
+    const success = await onAddSession(newSession);
+    if (success) setIsOpenBooking(false);
   };
 
   // Get sessions for a specific day
@@ -142,7 +142,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-visible">
         {/* Month Navigator */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
           <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
@@ -175,26 +175,42 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
             const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const daySessions = getSessionsForDay(day);
             const isToday = dayStr === todayStr;
+            const isPast = dayStr < todayStr;
+            const isHovered = hoveredDay === dayStr;
             return (
               <div
                 key={day}
-                className={`h-20 border-b border-r border-slate-100/80 p-1.5 ${isToday ? 'bg-slate-50' : 'hover:bg-slate-50/50'} transition-colors`}
+                className={`h-20 border-b border-r border-slate-100/80 p-1.5 relative group transition-all duration-150 cursor-default
+                  ${isToday ? 'bg-slate-50 ring-1 ring-inset ring-slate-900/10' : ''}
+                  ${isPast && !isToday ? 'bg-slate-50/30' : ''}
+                  ${!isPast || isToday ? 'hover:bg-blue-50/40 hover:border-blue-200/60' : 'hover:bg-slate-50/60'}
+                `}
+                onMouseEnter={() => {
+                  if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+                  setHoveredDay(dayStr);
+                }}
+                onMouseLeave={() => {
+                  tooltipTimeoutRef.current = setTimeout(() => setHoveredDay(null), 120);
+                }}
               >
-                <span className={`text-xs font-bold inline-flex w-6 h-6 items-center justify-center rounded-full ${isToday ? 'bg-slate-900 text-white' : 'text-slate-600'}`}>
+                <span className={`text-xs font-bold inline-flex w-6 h-6 items-center justify-center rounded-full transition-colors ${isToday
+                  ? 'bg-slate-900 text-white'
+                  : isPast
+                    ? 'text-slate-400'
+                    : 'text-slate-700 group-hover:bg-slate-900 group-hover:text-white'
+                  }`}>
                   {day}
                 </span>
                 <div className="mt-0.5 space-y-0.5 overflow-hidden">
                   {daySessions.slice(0, 2).map(session => (
                     <div
                       key={session.id}
-                      className={`text-[9px] font-semibold px-1 py-0.5 rounded truncate leading-tight ${
-                        session.status === 'Completed' || session.isCompleted
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : session.status === 'Active'
+                      className={`text-[9px] font-semibold px-1 py-0.5 rounded truncate leading-tight ${session.status === 'Completed' || session.isCompleted
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : session.status === 'Active'
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-slate-900/10 text-slate-700'
-                      }`}
-                      title={`${session.topic} — ${session.employeeName}`}
+                        }`}
                     >
                       {session.startTime} {session.topic.substring(0, 12)}
                     </div>
@@ -203,6 +219,58 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                     <div className="text-[9px] text-slate-400 font-mono pl-1">+{daySessions.length - 2} lagi</div>
                   )}
                 </div>
+
+                {/* Custom Tooltip */}
+                {isHovered && daySessions.length > 0 && (
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-50 w-56 pointer-events-none"
+                    onMouseEnter={() => {
+                      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+                    }}
+                  >
+                    <div className="bg-slate-50 rounded-xl shadow-2xl border border-slate-50/50 overflow-hidden">
+                      {/* Tooltip header */}
+                      <div className="px-3 py-2 bg-slate-800 border-b border-slate-700/60 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-50" />
+                        <span className="text-[10px] font-bold text-slate-200 tracking-wide">
+                          {day} {monthsList[currentMonth]} — {daySessions.length} Sesi
+                        </span>
+                      </div>
+                      {/* Session list */}
+                      <div className="p-2 space-y-1.5">
+                        {daySessions.map(session => (
+                          <div key={session.id} className="flex items-start gap-2">
+                            <div className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${session.status === 'Completed' || session.isCompleted
+                              ? 'bg-emerald-400'
+                              : session.status === 'Active'
+                                ? 'bg-amber-400'
+                                : 'bg-slate-400'
+                              }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-semibold text-slate-900 truncate leading-tight">{session.topic}</p>
+                              <p className="text-[9px] text-slate-900 mt-0.5">
+                                {session.startTime}–{session.endTime} · {session.employeeName}
+                              </p>
+                              <span className={`inline-block mt-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${session.status === 'Completed' || session.isCompleted
+                                ? 'bg-emerald-900/60 text-emerald-300'
+                                : session.status === 'Active'
+                                  ? 'bg-amber-900/60 text-amber-300'
+                                  : 'bg-slate-700 text-slate-300'
+                                }`}>
+                                {session.status === 'Completed' || session.isCompleted ? 'Selesai'
+                                  : session.status === 'Active' ? 'Berlangsung' : 'Terjadwal'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Arrow */}
+                    <div className="flex justify-center">
+                      <div className="w-2.5 h-2.5 bg-slate-900 border-b border-r border-slate-700/50 rotate-45 -mt-1.5" />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -228,9 +296,8 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-slate-900 truncate">{session.topic}</span>
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                      session.status === 'Active' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'
-                    }`}>
+                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${session.status === 'Active' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
                       {session.status}
                     </span>
                   </div>
@@ -340,6 +407,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                       <input
                         type="date"
                         required
+                        min={new Date().toISOString().split('T')[0]}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}

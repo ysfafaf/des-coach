@@ -48,18 +48,14 @@ export const INITIAL_USERS: User[] = [
   }
 ];
 
-export const TOP_TOPICS = [
-  'Kinerja Kerja (KPI)',
-  'Pengembangan Karir',
-  'Kesehatan Mental & Stres',
-  'Komunikasi Tim',
-  'Manajemen Waktu',
-  'Resolusi Konflik',
-  'Keseimbangan Hidup (Work-Life Balance)',
-  'Kepemimpinan (Leadership)',
-  'Motivasi & Burnout',
-  'Adaptasi Budaya Kerja Baru'
-];
+export const CATEGORY_MAP: Record<string, number> = {
+  'Technical Skills Development': 1,
+  'Soft Skills & Communication': 2,
+  'Leadership & Management': 3,
+  'Career Planning & Development': 4
+};
+
+export const TOP_TOPICS = Object.keys(CATEGORY_MAP);
 
 export const MEETING_ROOMS = [
   'Ruangan Alpha (Lantai 2 - Samping Lift)',

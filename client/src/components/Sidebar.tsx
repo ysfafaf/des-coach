@@ -65,10 +65,10 @@ export default function Sidebar({ currentUser, activeView, setActiveView, onLogo
   return (
     <aside className={`${isCollapsed ? 'w-20' : 'w-60'} transition-all duration-300 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 h-full relative`}>
 
-      {/* Toggle Button */}
+      {/* Toggle Button – sits OUTSIDE the aside clipping area via z-50 */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-7 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 rounded-full p-1 cursor-pointer z-10 shadow-sm"
+        className="absolute -right-4 top-7 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400 rounded-full p-1.5 cursor-pointer z-50 shadow-md transition-all hover:shadow-lg"
         title={isCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
       >
         {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
@@ -105,11 +105,10 @@ export default function Sidebar({ currentUser, activeView, setActiveView, onLogo
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer text-left ${
-                isActive
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer text-left ${isActive
                   ? 'bg-slate-900 text-white font-medium'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-              }`}
+                }`}
               title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center gap-3">

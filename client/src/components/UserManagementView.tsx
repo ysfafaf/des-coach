@@ -100,60 +100,7 @@ export default function UserManagementView({
     }
   };
 
-  const FormFields = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div className="col-span-2">
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Nama Lengkap</label>
-        <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
-          value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Email</label>
-        <input type="email" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
-          value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Nomor HP</label>
-        <input type="text" maxLength={15} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
-          value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Gender</label>
-        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
-          value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Laki-laki' | 'Perempuan' })}>
-          <option value="Laki-laki">Laki-laki</option>
-          <option value="Perempuan">Perempuan</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Sistem Role</label>
-        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
-          value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}>
-          {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Jabatan / Posisi</label>
-        <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
-          value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
-      </div>
-      <div>
-        <label className="block text-slate-600 text-xs font-semibold mb-1">Status Akun</label>
-        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
-          value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
-      </div>
-      <div className="col-span-2">
-        <label className="block text-slate-600 text-xs font-semibold mb-1">
-          {isEditOpen ? 'Ubah Sandi (Kosongkan bila tetap)' : 'Password'}
-        </label>
-        <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
-          value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-      </div>
-    </div>
-  );
+
 
   return (
     <div className="space-y-6">
@@ -312,7 +259,56 @@ export default function UserManagementView({
               </div>
               <div className="overflow-y-auto flex-1">
                 <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
-                  <FormFields />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Nama Lengkap</label>
+                      <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Email</label>
+                      <input type="email" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Nomor HP</label>
+                      <input type="text" maxLength={15} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Gender</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Laki-laki' | 'Perempuan' })}>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Sistem Role</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}>
+                        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Jabatan / Posisi</label>
+                      <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Status Akun</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Password</label>
+                      <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                    </div>
+                  </div>
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer transition-colors">Batal</button>
                     <button type="submit" disabled={saving} className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50">
@@ -343,7 +339,56 @@ export default function UserManagementView({
               </div>
               <div className="overflow-y-auto flex-1">
                 <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-                  <FormFields />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Nama Lengkap</label>
+                      <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Email</label>
+                      <input type="email" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Nomor HP</label>
+                      <input type="text" maxLength={15} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Gender</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'Laki-laki' | 'Perempuan' })}>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Sistem Role</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}>
+                        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Jabatan / Posisi</label>
+                      <input type="text" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Status Akun</label>
+                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors cursor-pointer"
+                        value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-slate-600 text-xs font-semibold mb-1">Ubah Sandi (Kosongkan bila tetap)</label>
+                      <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:bg-white focus:border-slate-400 transition-colors"
+                        value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                    </div>
+                  </div>
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer transition-colors">Batal</button>
                     <button type="submit" className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5">

@@ -73,6 +73,12 @@ export default function CoachingView({
 
   // Timer logic
   useEffect(() => {
+    if (!activeSessId && activeSessions.length > 0) {
+      setActiveSessId(activeSessions[0].id);
+    }
+  }, [activeSessions, activeSessId]);
+
+  useEffect(() => {
     if (activeSessId) {
       timerRef.current = setInterval(() => setElapsedSeconds(p => p + 1), 1000);
     } else {
@@ -129,7 +135,9 @@ export default function CoachingView({
     setEditMeetingLink(session.meetingLink || '');
     setEditRoomName(session.roomName || MEETING_ROOMS[0]);
     setReassignToSupervisi(false);
-    setSelectedSupervisiId('');
+
+    const firstSpv = users.find(u => u.role === 'Supervisi');
+    setSelectedSupervisiId(firstSpv ? firstSpv.id : '');
   };
 
   const handleCloseEdit = () => {
@@ -189,24 +197,24 @@ export default function CoachingView({
 
       {/* ACTIVE SESSION TIMER (Coach) */}
       {isCoach && activeSessions.length > 0 && activeSessId && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-4">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Sesi Sedang Berlangsung</span>
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Sesi Sedang Berlangsung</span>
             </div>
-            <span className="text-2xl font-black font-mono text-amber-900">{formatTimer(elapsedSeconds)}</span>
+            <span className="text-2xl font-black font-mono text-slate-900">{formatTimer(elapsedSeconds)}</span>
           </div>
           {activeSessions.filter(s => s.id === activeSessId).map(session => (
             <div key={session.id}>
-              <p className="text-xs text-amber-700 font-semibold">{session.topic}</p>
-              <p className="text-[10px] text-amber-600 mt-0.5">Karyawan: {session.employeeName}</p>
+              <p className="text-xs text-slate-700 font-semibold">{session.topic}</p>
+              <p className="text-[10px] text-slate-600 mt-0.5">Karyawan: {session.employeeName}</p>
 
               <form onSubmit={(e) => handleEndSubmit(e, session.id)} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-amber-800 text-xs font-semibold mb-1">Catatan Sesi (Ringkasan)</label>
+                  <label className="block text-slate-800 text-xs font-semibold mb-1">Catatan Sesi (Ringkasan)</label>
                   <textarea
-                    className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none resize-none focus:border-amber-400"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none resize-none focus:border-amber-400"
                     rows={3}
                     placeholder="Tulis ringkasan pembahasan sesi ini..."
                     value={notes}
@@ -214,10 +222,10 @@ export default function CoachingView({
                   />
                 </div>
                 <div>
-                  <label className="block text-amber-800 text-xs font-semibold mb-2">Tindak Lanjut (Follow-up)</label>
+                  <label className="block text-slate-800 text-xs font-semibold mb-2">Tindak Lanjut (Follow-up)</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {FOLLOW_UP_OPTIONS.map(opt => (
-                      <label key={opt} className="flex items-start gap-2 cursor-pointer text-xs text-amber-800">
+                      <label key={opt} className="flex items-start gap-2 cursor-pointer text-xs text-slate-800">
                         <input
                           type="checkbox"
                           className="mt-0.5 w-3.5 h-3.5 cursor-pointer"
@@ -248,95 +256,109 @@ export default function CoachingView({
             {isCoach ? 'Daftar Sesi Coaching Anda' : 'Sesi Coaching Saya'}
           </h3>
           <p className="text-[10px] text-slate-500 mt-0.5">
-            {mySessions.length === 0 ? 'Belum ada sesi terjadwal untuk Anda.' : `${mySessions.length} sesi ditemukan.`}
+            {isCoach
+              ? 'Menampilkan sesi yang belum selesai.'
+              : 'Menampilkan sesi aktif dan sesi yang menunggu ulasan Anda.'}
           </p>
         </div>
 
         <div className="divide-y divide-slate-100">
-          {mySessions.length === 0 ? (
-            <div className="p-10 text-center text-slate-400 italic text-xs">
-              <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              Tidak ada sesi coaching terkait akun Anda.
-            </div>
-          ) : mySessions.map(session => (
-            <div key={session.id} className="p-5 hover:bg-slate-50/50 transition-colors">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-bold text-slate-900">{session.topic}</span>
-                    {sessionStatusBadge(session)}
-                  </div>
-                  <div className="text-[10px] text-slate-500 space-y-0.5">
-                    <p>{isCoach ? `Karyawan: ${session.employeeName}` : `Coach: ${session.coachName}`}</p>
-                    <p className="font-mono">{session.date} · {session.startTime}–{session.endTime}</p>
-                    <p className="flex items-center gap-1">
-                      {session.mode === 'Online'
-                        ? <><Video className="w-3 h-3" /> Online (Teams)</>
-                        : <><MapPin className="w-3 h-3" /> Offline — {session.roomName}</>}
-                    </p>
-                  </div>
-                </div>
+          {(() => {
+            const displaySessions = mySessions.filter(s => {
+              if (s.status !== 'Completed' && !s.isCompleted) return true;
+              if (isEmployee && !s.feedbackComment) return true;
+              return false;
+            });
 
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2 items-end shrink-0">
-                  {/* Coach: Edit & Start */}
-                  {isCoach && session.status === 'Scheduled' && (
-                    <>
+            if (displaySessions.length === 0) {
+              return (
+                <div className="p-10 text-center text-slate-400 italic text-xs">
+                  <Users className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                  Tidak ada sesi coaching terkait akun Anda.
+                </div>
+              );
+            }
+
+            return displaySessions.map(session => (
+              <div key={session.id} className="p-5 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-slate-900">{session.topic}</span>
+                      {sessionStatusBadge(session)}
+                    </div>
+                    <div className="text-[10px] text-slate-500 space-y-0.5">
+                      <p>{isCoach ? `Karyawan: ${session.employeeName}` : `Coach: ${session.coachName}`}</p>
+                      <p className="font-mono">{session.date} · {session.startTime}–{session.endTime}</p>
+                      <p className="flex items-center gap-1">
+                        {session.mode === 'Online'
+                          ? <><Video className="w-3 h-3" /> Online (Teams)</>
+                          : <><MapPin className="w-3 h-3" /> Offline — {session.roomName}</>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 items-end shrink-0">
+                    {/* Coach: Edit & Start */}
+                    {isCoach && session.status === 'Scheduled' && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEdit(session)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold rounded-lg cursor-pointer transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleStart(session.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-semibold rounded-lg cursor-pointer transition-colors"
+                        >
+                          <Play className="w-3 h-3" /> Mulai Sesi
+                        </button>
+                      </>
+                    )}
+
+                    {/* Employee: Give Feedback */}
+                    {isEmployee && (session.isCompleted || session.status === 'Completed') && !session.feedbackComment && (
                       <button
-                        onClick={() => handleOpenEdit(session)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold rounded-lg cursor-pointer transition-colors"
-                      >
-                        <Edit2 className="w-3 h-3" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleStart(session.id)}
+                        onClick={() => setFeedbackSessionId(session.id)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-semibold rounded-lg cursor-pointer transition-colors"
                       >
-                        <Play className="w-3 h-3" /> Mulai Sesi
+                        <Star className="w-3 h-3" /> Beri Rating
                       </button>
-                    </>
-                  )}
+                    )}
 
-                  {/* Employee: Give Feedback */}
-                  {isEmployee && (session.isCompleted || session.status === 'Completed') && !session.feedbackComment && (
-                    <button
-                      onClick={() => setFeedbackSessionId(session.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-semibold rounded-lg cursor-pointer transition-colors"
-                    >
-                      <Star className="w-3 h-3" /> Beri Rating
-                    </button>
-                  )}
-
-                  {/* Rating badge if already rated */}
-                  {session.rating && (
-                    <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200">
-                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      <span className="text-[10px] font-bold font-mono">{session.rating}</span>
-                    </div>
-                  )}
+                    {/* Rating badge if already rated */}
+                    {session.rating && (
+                      <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200">
+                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        <span className="text-[10px] font-bold font-mono">{session.rating}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Notes if completed */}
+                {session.notes && (
+                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <FileText className="w-3 h-3" /> Catatan Sesi
+                    </p>
+                    <p className="text-xs text-slate-700">{session.notes}</p>
+                  </div>
+                )}
+                {session.followUp && session.followUp.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {session.followUp.map((f, i) => (
+                      <span key={i} className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
+                        <CheckSquare className="w-2.5 h-2.5 inline mr-0.5" />{f}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* Notes if completed */}
-              {session.notes && (
-                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <FileText className="w-3 h-3" /> Catatan Sesi
-                  </p>
-                  <p className="text-xs text-slate-700">{session.notes}</p>
-                </div>
-              )}
-              {session.followUp && session.followUp.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {session.followUp.map((f, i) => (
-                    <span key={i} className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
-                      <CheckSquare className="w-2.5 h-2.5 inline mr-0.5" />{f}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
 
@@ -532,8 +554,8 @@ export default function CoachingView({
                             {supervisiList.length === 0
                               ? <option value="">Tidak ada supervisi tersedia</option>
                               : supervisiList.map(spv => (
-                                  <option key={spv.id} value={spv.id}>{spv.name} — {spv.position}</option>
-                                ))}
+                                <option key={spv.id} value={spv.id}>{spv.name} — {spv.position}</option>
+                              ))}
                           </select>
                         </div>
                       )}

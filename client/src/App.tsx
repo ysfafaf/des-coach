@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, CoachingSession, Reply } from './types';
-import { INITIAL_USERS, INITIAL_SESSIONS } from './initialData';
+import { CATEGORY_MAP } from './initialData';
 import { normalizeSession, normalizeSessions } from './sessionUtils';
 import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
@@ -14,8 +14,8 @@ import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function App() {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [sessions, setSessions] = useState<CoachingSession[]>(INITIAL_SESSIONS);
+  const [users, setUsers] = useState<User[]>([]);
+  const [sessions, setSessions] = useState<CoachingSession[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeView, setActiveView] = useState('jadwal');
 
@@ -47,7 +47,7 @@ export default function App() {
           rating: item.rating ? Number(item.rating) : undefined,
           feedbackComment: item.feedback_comment ? String(item.feedback_comment) : undefined,
           isAnonymous: false,
-          replies: [],
+          replies: item.replies || [],
         }));
         setSessions(normalizeSessions(mapped, users));
       }
@@ -149,27 +149,28 @@ export default function App() {
           password: newUserData.password || 'password123',
           role: newUserData.role,
           is_active: newUserData.status === 'Active',
+          phone: newUserData.phone,
+          position: newUserData.position,
+          gender: newUserData.gender,
         }),
       });
       const data = await res.json();
-      if (data.status === 201) {
+      if (res.ok && data.status === 201) {
         await fetchUsers();
         return true;
       }
-      alert(data.message || 'Gagal menambah user');
+      alert(data.messages?.error || data.message || 'Gagal menambah user');
       return false;
-    } catch {
-      // Fallback to local state
-      const id = `usr-${Date.now()}`;
-      setUsers(prev => [...prev, { ...newUserData, id }]);
-      return true;
+    } catch (err: any) {
+      alert('Network error saat menambah user');
+      return false;
     }
   };
 
   const handleUpdateUser = async (id: string, updatedFields: Partial<User>) => {
     try {
       const token = localStorage.getItem('des_coach_token');
-      await fetch(`/api/users/${id}`, {
+      const res = await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -180,24 +181,38 @@ export default function App() {
           role: updatedFields.role,
           is_active: updatedFields.status === 'Active',
           password: updatedFields.password,
+          phone: updatedFields.phone,
+          position: updatedFields.position,
+          gender: updatedFields.gender,
         }),
       });
-      await fetchUsers();
-    } catch {
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedFields } : u));
+      const data = await res.json();
+      if (res.ok) {
+        await fetchUsers();
+      } else {
+        alert(data.messages?.error || data.message || 'Gagal update user');
+      }
+    } catch (err: any) {
+      alert('Network error saat update user');
     }
   };
 
   const handleDeleteUser = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus pengguna ini?')) return;
     try {
       const token = localStorage.getItem('des_coach_token');
-      await fetch(`/api/users/${id}`, {
+      const res = await fetch(`/api/users/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      await fetchUsers();
-    } catch {
-      setUsers(prev => prev.filter(u => u.id !== id));
+      const data = await res.json();
+      if (res.ok) {
+        await fetchUsers();
+      } else {
+        alert(data.messages?.error || data.message || 'Gagal menghapus user');
+      }
+    } catch (err: any) {
+      alert('Network error saat menghapus user');
     }
   };
 
@@ -213,7 +228,7 @@ export default function App() {
           employee_id: newSession.employeeId,
           coach_id: newSession.coachId,
           topic: newSession.topic,
-          category_id: 1,
+          category_id: CATEGORY_MAP[newSession.category] || 1,
           scheduled_date: newSession.date,
           start_time: newSession.startTime,
           end_time: newSession.endTime,
@@ -227,11 +242,14 @@ export default function App() {
       const data = await res.json();
       if (data.status === 201) {
         await fetchSessions();
+        return true;
       } else {
-        setSessions(prev => [...prev, newSession]);
+        alert(data.message || 'Gagal menyimpan jadwal');
+        return false;
       }
     } catch {
-      setSessions(prev => [...prev, newSession]);
+      alert('Terjadi kesalahan jaringan saat menyimpan jadwal');
+      return false;
     }
   };
 
@@ -243,7 +261,7 @@ export default function App() {
         body: JSON.stringify({ schedule_id: id }),
       });
       const data = await res.json();
-      if (data.status === 210 || data.status === 200) {
+      if (data.status === 201 || data.status === 200) {
         setSessions(prev => prev.map(s =>
           s.id === id ? { ...s, status: 'Active' as const } : s
         ));
@@ -270,12 +288,23 @@ export default function App() {
   };
 
   const handleSubmitFeedback = async (id: string, rating: number, comment: string, isAnonymous: boolean) => {
-    // POST /api/feedback — endpoint to be created in backend
+    const session = sessions.find(s => s.id === id);
     try {
+      const token = localStorage.getItem('des_coach_token');
       await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: id, rating, comment, is_anonymous: isAnonymous }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          session_id: id,
+          employee_id: session?.employeeId || currentUser?.id,
+          coach_id: session?.coachId,
+          rating,
+          comment,
+          is_anonymous: isAnonymous,
+        }),
       });
     } catch { /* ignore */ }
     setSessions(prev => prev.map(s =>
@@ -291,7 +320,10 @@ export default function App() {
       const res = await fetch(`/api/jadwal/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({
+          ...updates,
+          category_id: updates.category ? CATEGORY_MAP[updates.category] : undefined,
+        }),
       });
       const data = await res.json();
       if (data.message || data.status === 200) {
@@ -358,22 +390,42 @@ export default function App() {
   };
 
   // ─── QUICK ROLE SWITCHER (evaluator helper) ───────────────────────────
-  const handleQuickChangeRole = (role: UserRole) => {
+  const handleQuickChangeRole = async (role: UserRole) => {
     const matchedUser = users.find(u => u.role === role);
-    if (matchedUser) {
-      setCurrentUser(matchedUser);
-      setActiveView(role === 'Admin' ? 'users' : 'jadwal');
-    }
+    if (!matchedUser) return;
+
+    // Login as the matched user to get a valid token for that account
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: matchedUser.email, password: 'password123' }),
+      });
+      const data = await res.json();
+      if (data.status === 200 && data.access_token) {
+        localStorage.setItem('des_coach_token', data.access_token);
+      }
+    } catch { /* ignore – still switch UI role */ }
+
+    setCurrentUser(matchedUser);
+    setActiveView(role === 'Admin' ? 'users' : 'jadwal');
+    // Re-fetch with new user context
+    await fetchUsers();
+    await fetchSessions();
   };
 
   // ─── RESET DATABASE ───────────────────────────────────────────────────
   const handleResetDatabase = async () => {
-    if (!confirm('Reset semua data ke kondisi awal? Aksi ini tidak dapat dibatalkan.')) return;
+    if (!confirm('Reset semua data sesi, jadwal, dan feedback ke kondisi awal? Aksi ini tidak dapat dibatalkan.')) return;
     try {
-      await fetch('/api/admin/reset-database', { method: 'POST' });
+      const token = localStorage.getItem('des_coach_token');
+      await fetch('/api/admin/reset-database', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch { /* ignore */ }
-    setUsers(INITIAL_USERS);
-    setSessions(INITIAL_SESSIONS);
+    setUsers([]);
+    setSessions([]);
   };
 
   // ─── VIEW ROUTER ─────────────────────────────────────────────────────
@@ -462,13 +514,10 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
 
         {/* TOP HEADER BAR */}
-        <header className="bg-white/95 border-b border-slate-200/80 p-4 shrink-0 flex items-center justify-between z-20 backdrop-blur-sm shadow-xs">
+        <header className="border-b border-slate-200/80 p-4 shrink-0 flex items-center justify-between z-20 backdrop-blur-sm shadow-xs">
 
           {/* Quick Role Switcher */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:inline">
-              Akses Simulasi Peran:
-            </span>
             <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
               {(['Admin', 'HOD', 'Supervisi', 'Karyawan'] as UserRole[]).map((role) => {
                 const isActive = currentUser.role === role;
@@ -476,11 +525,10 @@ export default function App() {
                   <button
                     key={role}
                     onClick={() => handleQuickChangeRole(role)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
-                    }`}
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${isActive
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
+                      }`}
                   >
                     {role}
                   </button>
@@ -490,7 +538,7 @@ export default function App() {
           </div>
 
           {/* Reset */}
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <button
               onClick={handleResetDatabase}
               className="p-2 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-800 border border-slate-200 rounded-xl transition-all cursor-pointer shadow-xs"
@@ -498,7 +546,7 @@ export default function App() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-          </div>
+          </div> */}
         </header>
 
         {/* VIEW CONTAINER */}

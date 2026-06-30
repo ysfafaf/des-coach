@@ -98,10 +98,11 @@ class AuthController extends ResourceController
             'is_used'    => false
         ]); 
 
-        $linkReset = "http://localhost:5173/api/auth/reset-password?token=" . $token; 
+        $linkReset = "http://localhost:5173/?token=" . $token; 
 
         $emailService = \Config\Services::email();
 
+        $emailService->setFrom('umamikebab123@gmail.com', 'Admin DES-Coach');
         $emailService->setTo($email);
         $emailService->setSubject('Reset Password Akun DES-Coach Anda');
         

@@ -22,11 +22,9 @@ interface DashboardViewProps {
 
 export default function DashboardView({ sessions, users }: DashboardViewProps) {
   const [apiData, setApiData] = useState<{
-    grafikBulanan?: { bulan: string; jumlah: number }[];
+    grafikBulanan?: { bulan: string; bulan_num: string; jumlah: number }[];
     topKategori?: { nama_kategori: string; jumlah_digunakan: number }[];
   }>({});
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -56,12 +54,13 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
 
   // Monthly sessions chart (fallback from local data)
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const monthlyCounts = apiData.grafikBulanan
-    ? apiData.grafikBulanan.map(d => ({ name: d.bulan.trim().substring(0, 3), count: Number(d.jumlah) }))
-    : monthNames.map((name, i) => ({
-        name,
-        count: completedSessions.filter(s => new Date(s.date).getMonth() === i).length,
-      }));
+  const monthlyCounts = monthNames.map((name, i) => {
+    if (apiData.grafikBulanan) {
+      const apiMatch = apiData.grafikBulanan.find(d => Number(d.bulan_num) === i + 1);
+      return { name, count: apiMatch ? Number(apiMatch.jumlah) : 0 };
+    }
+    return { name, count: completedSessions.filter(s => new Date(s.date).getMonth() === i).length };
+  });
 
   // Coach distribution
   const sessionsPerCoach = users
@@ -86,25 +85,33 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
 
   const maxMonthly = Math.max(...monthlyCounts.map(d => d.count), 1);
 
-  const handleImportExcel = async () => {
-    if (!importFile) return;
-    setImporting(true);
-    try {
-      const formData = new FormData();
-      formData.append('file_excel', importFile);
-      const token = localStorage.getItem('des_coach_token');
-      const res = await fetch('/api/dashboard/import', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      const data = await res.json();
-      alert(data.message || 'Import selesai.');
-    } catch {
-      alert('Gagal melakukan import.');
-    }
-    setImporting(false);
-    setImportFile(null);
+  const handleExportExcel = () => {
+    const headers = ['Topik', 'Kategori', 'Tanggal', 'Waktu', 'Karyawan', 'Coach', 'Mode', 'Rating', 'Status'];
+    const rows = completedSessions.map(s => [
+      s.topic,
+      s.category,
+      s.date,
+      `${s.startTime} - ${s.endTime}`,
+      s.employeeName,
+      s.coachName,
+      s.mode,
+      s.rating || '-',
+      'Selesai'
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Laporan_Sesi_Coaching_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -122,27 +129,15 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
             </p>
           </div>
 
-          {/* Import Excel */}
+          {/* Export Excel */}
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
-              <Upload className="w-3.5 h-3.5" />
-              {importFile ? importFile.name.substring(0, 15) + '...' : 'Import Excel'}
-              <input
-                type="file"
-                accept=".csv,.xls,.xlsx"
-                className="hidden"
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              />
-            </label>
-            {importFile && (
-              <button
-                onClick={handleImportExcel}
-                disabled={importing}
-                className="px-3 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {importing ? 'Mengimpor...' : 'Proses'}
-              </button>
-            )}
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export Laporan
+            </button>
           </div>
         </div>
       </div>

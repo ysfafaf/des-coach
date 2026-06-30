@@ -19,6 +19,9 @@ class UserModel extends Model
         'role',
         'is_active',
         'token',
+        'phone',
+        'position',
+        'gender',
         'updated_at'
     ];
 

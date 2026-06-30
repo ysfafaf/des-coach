@@ -85,11 +85,10 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
             <button
               key={tab}
               onClick={() => setHodTab(tab)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                hodTab === tab ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${hodTab === tab ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
             >
-              {tab === 'your' ? '👤 Sesi Saya' : '👥 Sesi Coach Lain'}
+              {tab === 'your' ? 'Sesi Saya' : 'Sesi Coach Lain'}
             </button>
           ))}
         </div>
@@ -154,7 +153,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                     <span className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-semibold">Selesai</span>
                     {session.rating && (
                       <div className="flex items-center gap-0.5">
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                           <Star key={s} className={`w-3 h-3 ${s <= session.rating! ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                         ))}
                       </div>
@@ -254,7 +253,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                     <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <span className="text-xs font-bold text-slate-700">Skor Rating</span>
                       <div className="flex items-center gap-1">
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                           <Star key={s} className={`w-4 h-4 ${s <= (selectedSession.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                         ))}
                       </div>

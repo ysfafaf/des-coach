@@ -20,26 +20,67 @@ class JadwalController extends ResourceController
      */
     public function index()
     {
-        $bulan = $this->request->getGet('bulan') ?? date('m');
-        $tahun = $this->request->getGet('tahun') ?? date('Y');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
 
         $scheduleModel = new ScheduleModel();
 
-        // Menggunakan method chaining langsung dari Model, kode tetap rapi!
-        $jadwal = $scheduleModel->select('schedules.*, k.name as employee_name, c.name as coach_name, cat.name as category_name, r.name as room_name')
+        $builder = $scheduleModel->select('schedules.*, 
+                k.name as employee_name, 
+                c.name as coach_name, 
+                cat.name as category_name, 
+                r.name as room_name,
+                cs.status as session_status,
+                cs.notes,
+                fb.id as feedback_id,
+                fb.rating,
+                fb.comment as feedback_comment,
+                cs.id as session_id')
             ->join('users k', 'k.id = schedules.employee_id', 'left')
             ->join('users c', 'c.id = schedules.coach_id', 'left')
             ->join('categories cat', 'cat.id = schedules.category_id', 'left')
             ->join('rooms r', 'r.id = schedules.room_id', 'left')
-            ->where("EXTRACT(MONTH FROM schedules.scheduled_date) =", $bulan)
-            ->where("EXTRACT(YEAR FROM schedules.scheduled_date) =", $tahun)
-            ->orderBy('schedules.scheduled_date', 'ASC')
+            ->join('coaching_sessions cs', 'cs.schedule_id = schedules.id', 'left')
+            ->join('feedback fb', 'fb.session_id = cs.id', 'left');
+
+        if ($bulan && $tahun) {
+            $builder->where("EXTRACT(MONTH FROM schedules.scheduled_date) =", $bulan)
+                    ->where("EXTRACT(YEAR FROM schedules.scheduled_date) =", $tahun);
+        }
+
+        $jadwal = $builder->orderBy('schedules.scheduled_date', 'ASC')
             ->orderBy('schedules.start_time', 'ASC')
-            ->findAll(); // Menggunakan fungsi bawaan model untuk mengambil banyak data
+            ->findAll();
+
+        // Fetch feedback replies
+        $feedbackIds = array_filter(array_column($jadwal, 'feedback_id'));
+        $replies = [];
+        if (!empty($feedbackIds)) {
+            $db = \Config\Database::connect();
+            $replyData = $db->table('feedback_replies')
+                ->select('feedback_replies.*, users.name as authorName, users.role as authorRole')
+                ->join('users', 'users.id = feedback_replies.replied_by', 'left')
+                ->whereIn('feedback_id', $feedbackIds)
+                ->get()->getResultArray();
+            
+            foreach ($replyData as $r) {
+                $replies[$r['feedback_id']][] = [
+                    'id' => $r['id'],
+                    'authorName' => $r['authorName'],
+                    'authorRole' => $r['authorRole'],
+                    'content' => $r['reply'],
+                    'timestamp' => $r['created_at']
+                ];
+            }
+        }
+
+        foreach ($jadwal as &$j) {
+            $j['replies'] = isset($j['feedback_id']) && isset($replies[$j['feedback_id']]) ? $replies[$j['feedback_id']] : [];
+        }
 
         return $this->respond([
             'status' => 200,
-            'message' => 'Data jadwal bulanan berhasil diambil.',
+            'message' => 'Data jadwal berhasil diambil.',
             'data' => $jadwal
         ]);
     }
@@ -67,6 +108,36 @@ class JadwalController extends ResourceController
         // Validasi: Admin dilarang membuat jadwal
         if (strtolower($roleUser) === 'admin') {
             return $this->failForbidden('Admin tidak diizinkan untuk membuat jadwal coaching.');
+        }
+
+        // Validasi: Tanggal tidak boleh di masa lalu
+        if (strtotime($scheduledDate) < strtotime(date('Y-m-d'))) {
+            return $this->fail('Tidak dapat membuat jadwal di tanggal yang sudah lewat.');
+        }
+
+        // Validasi: Jadwal bentrok untuk coach yang sama
+        $scheduleModel = new \App\Models\ScheduleModel();
+        $overlap = $scheduleModel->where('coach_id', $data['coach_id'] ?? null)
+            ->where('scheduled_date', $scheduledDate)
+            ->where('status !=', 'done')
+            ->groupStart()
+                ->groupStart()
+                    ->where('start_time <=', $startTime)
+                    ->where('end_time >', $startTime)
+                ->groupEnd()
+                ->orGroupStart()
+                    ->where('start_time <', $endTime)
+                    ->where('end_time >=', $endTime)
+                ->groupEnd()
+                ->orGroupStart()
+                    ->where('start_time >=', $startTime)
+                    ->where('end_time <=', $endTime)
+                ->groupEnd()
+            ->groupEnd()
+            ->first();
+
+        if ($overlap) {
+            return $this->fail('Jadwal bentrok! Coach sudah memiliki sesi di jam tersebut.');
         }
 
         // Validasi Aturan Waktu
@@ -145,6 +216,7 @@ class JadwalController extends ResourceController
             'mode'           => $data['mode'] ?? $existing['mode'],
             'meet_link'      => ($data['mode'] ?? $existing['mode']) === 'online' ? ($data['meet_link'] ?? $existing['meet_link']) : null,
             'room_id'        => ($data['mode'] ?? $existing['mode']) === 'offline' ? ($data['room_id'] ?? $existing['room_id']) : null,
+            'coach_id'       => $data['coach_id'] ?? $data['coachId'] ?? $existing['coach_id'],
         ];
 
         // Update data via Model (Otomatis memperbarui kolom updated_at)

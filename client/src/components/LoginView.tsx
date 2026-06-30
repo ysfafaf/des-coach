@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import {
   Mail,
@@ -25,8 +25,19 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetPassword, setResetPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      setResetToken(token);
+      setAuthStep('reset_password');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,41 +89,7 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
     }
   };
 
-  const handleQuickLogin = async (userEmail: string) => {
-    setError('');
-    setLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, password: 'password123' }),
-      });
-      const data = await res.json();
-      if (data.status === 200 && data.user) {
-        const roleMap: Record<string, UserRole> = {
-          hod: 'HOD', admin: 'Admin', supervisi: 'Supervisi', karyawan: 'Karyawan',
-        };
-        const mappedUser: User = {
-          id: String(data.user.id),
-          name: data.user.name,
-          email: userEmail,
-          phone: '',
-          gender: 'Laki-laki',
-          position: data.user.role,
-          role: roleMap[String(data.user.role).toLowerCase()] || 'Karyawan',
-          status: 'Active',
-        };
-        onLoginSuccess(mappedUser, data.access_token);
-        return;
-      }
-    } catch { /* ignore */ }
-
-    // Fallback local
-    const localUser = users.find(u => u.email === userEmail);
-    if (localUser) onLoginSuccess(localUser);
-    setLoading(false);
-  };
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,19 +132,27 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
       return;
     }
     setLoading(true);
-    const success = await onUpdateUserPassword(forgotEmail, resetPassword);
-    setLoading(false);
-    if (success) {
-      setAuthStep('login');
-      setEmail(forgotEmail);
-      setPassword('');
-      setForgotEmail('');
-      setResetPassword('');
-      setConfirmPassword('');
-      setError('');
-    } else {
-      setError('Gagal memperbarui password. Coba lagi.');
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password_baru: resetPassword }),
+      });
+      const data = await res.json();
+      if (data.status === 200) {
+        setAuthStep('login');
+        setResetPassword('');
+        setConfirmPassword('');
+        setResetToken('');
+        setError('');
+        alert('Password berhasil direset! Silakan login menggunakan password baru Anda.');
+      } else {
+        setError(data.message || 'Gagal mereset password.');
+      }
+    } catch {
+      setError('Terjadi kesalahan jaringan.');
     }
+    setLoading(false);
   };
 
   return (
@@ -355,13 +340,14 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
               </p>
 
               <div className="space-y-3">
-                <button
+
+                {/* <button
                   type="button"
                   onClick={() => setAuthStep('reset_password')}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <KeyRound className="w-4 h-4" /> Atur Password Baru
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => { setError(''); setAuthStep('login'); }}
@@ -449,33 +435,7 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
         </AnimatePresence>
       </div>
 
-      {/* QUICK LOGIN HELPER */}
-      <div className="w-full max-w-md mt-6 bg-white/85 border border-slate-200 rounded-xl p-4 text-center z-10 shadow-sm backdrop-blur-sm">
-        <span className="text-slate-500 text-xs font-medium flex items-center justify-center gap-1.5 mb-2.5">
-          <Sparkles className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Pintasan Penguji: Klik untuk masuk langsung sesuai peran
-        </span>
-        <div className="grid grid-cols-2 gap-2">
-          {users.filter(u => ['Admin', 'HOD', 'Supervisi', 'Karyawan'].includes(u.role)).slice(0, 4).map((user) => {
-            const roleColors: Record<UserRole, string> = {
-              HOD: 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100',
-              Admin: 'bg-slate-100 text-slate-900 border-slate-300 hover:bg-slate-200',
-              Supervisi: 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100',
-              Karyawan: 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100',
-            };
-            return (
-              <button
-                key={user.id}
-                onClick={() => handleQuickLogin(user.email)}
-                disabled={loading}
-                className={`text-left p-2 rounded-lg border text-xs flex flex-col transition-all cursor-pointer disabled:opacity-50 ${roleColors[user.role]}`}
-              >
-                <span className="font-bold block truncate">{user.name}</span>
-                <span className="text-[10px] font-mono opacity-80 mt-0.5">{user.role} ({user.position})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+
     </div>
   );
 }

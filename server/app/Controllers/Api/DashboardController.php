@@ -18,54 +18,75 @@ class DashboardController extends ResourceController
     }
 
     /**
-     * Helper Keamanan: Hanya mengizinkan role HOD
+     * Helper: validasi token siapapun (admin/hod/supervisi/karyawan)
      */
-    private function authHOD()
+    private function authUser()
     {
         $authHeader = $this->request->getServer('HTTP_AUTHORIZATION');
         if (!$authHeader) return false;
-
         $token = str_replace('Bearer ', '', $authHeader);
-        $user = $this->userModel->where('token', $token)->first();
-
-        if (!$user || strtolower($user['role']) !== 'hod' || $user['is_active'] == false) {
-            return false;
-        }
+        $user  = $this->userModel->where('token', $token)->first();
+        if (!$user || !$user['is_active']) return false;
         return $user;
+    }
+
+    /**
+     * Helper: hanya HOD
+     */
+    private function authHOD()
+    {
+        $user = $this->authUser();
+        return ($user && strtolower($user['role']) === 'hod') ? $user : false;
     }
 
     public function index()
     {
-        if (!$this->authHOD()) {
-            return $this->failUnauthorized('Akses ditolak. Halaman Dashboard ini hanya dapat diakses oleh role HOD.');
+        if (!$this->authUser()) {
+            return $this->failUnauthorized('Silakan login terlebih dahulu.');
         }
 
         $tahunIni = date('Y');
 
-        // --- A. Jumlah Coaching per Bulan (Grup berdasarkan started_at) ---
+        // A. Grafik Coaching per Bulan
         $grafikCoaching = $this->db->table('coaching_sessions')
-            ->select("to_char(started_at, 'Month') as bulan, COUNT(id) as jumlah")
-            ->where("to_char(started_at, 'YYYY') =", $tahunIni)
-            ->groupBy("to_char(started_at, 'MM'), to_char(started_at, 'Month')")
-            ->orderBy("to_char(started_at, 'MM')", 'ASC', false)
+            ->select("to_char(started_at, 'Month') as bulan, EXTRACT(MONTH FROM started_at) as bulan_num, COUNT(id) as jumlah")
+            ->where("EXTRACT(YEAR FROM started_at) =", $tahunIni)
+            ->groupBy("EXTRACT(MONTH FROM started_at), to_char(started_at, 'Month')")
+            ->orderBy("bulan_num", 'ASC', false)
             ->get()->getResultArray();
 
-        // --- B. Top 10 Kategori Topik (JOIN ke tabel schedules & categories) ---
-        $topKategori = $this->db->table('coaching_sessions')
-            ->join('schedules', 'schedules.id = coaching_sessions.schedule_id')
+        // B. Top 10 Kategori Topik (Dari Sesi Selesai)
+        $topKategori = $this->db->table('schedules')
             ->join('categories', 'categories.id = schedules.category_id')
-            ->select('categories.name as nama_kategori, COUNT(coaching_sessions.id) as jumlah_digunakan')
+            ->join('coaching_sessions', 'coaching_sessions.schedule_id = schedules.id')
+            ->select('categories.name as nama_kategori, COUNT(schedules.id) as jumlah_digunakan')
+            ->where('coaching_sessions.status', 'done')
             ->groupBy('categories.id, categories.name')
             ->orderBy('jumlah_digunakan', 'DESC')
             ->limit(10)
             ->get()->getResultArray();
 
+        // C. Statistik Ringkasan
+        $totalSesi     = $this->db->table('coaching_sessions')->countAll();
+        $totalUser     = $this->db->table('users')->where('is_active', true)->countAll();
+        $mendatang     = $this->db->table('schedules')
+            ->where('status', 'pending')
+            ->where('scheduled_date >=', date('Y-m-d'))
+            ->countAll();
+        $sesiSelesai   = $this->db->table('coaching_sessions')->where('status', 'done')->countAll();
+        $sesiAktif     = $this->db->table('coaching_sessions')->where('status', 'ongoing')->countAll();
+
         return $this->respond([
-            'status' => 200,
-            'message' => 'Data dashboard HOD berhasil dimuat.',
-            'data' => [
+            'status'  => 200,
+            'message' => 'Data dashboard berhasil dimuat.',
+            'data'    => [
                 'grafik_coaching_bulanan' => $grafikCoaching,
-                'top_10_kategori_topik'  => $topKategori
+                'top_10_kategori_topik'   => $topKategori,
+                'total_sesi'             => $totalSesi,
+                'total_user_aktif'       => $totalUser,
+                'jadwal_mendatang'       => $mendatang,
+                'sesi_selesai'           => $sesiSelesai,
+                'sesi_aktif'             => $sesiAktif,
             ]
         ], 200);
     }

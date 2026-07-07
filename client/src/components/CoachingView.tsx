@@ -214,7 +214,7 @@ export default function CoachingView({
                 <div>
                   <label className="block text-slate-800 text-xs font-semibold mb-1">Catatan Sesi (Ringkasan)</label>
                   <textarea
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none resize-none focus:border-amber-400"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none resize-none focus:border-slate-700"
                     rows={3}
                     placeholder="Tulis ringkasan pembahasan sesi ini..."
                     value={notes}
@@ -239,7 +239,7 @@ export default function CoachingView({
                 </div>
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg cursor-pointer transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg cursor-pointer transition-colors"
                 >
                   <Square className="w-3.5 h-3.5" /> Akhiri Sesi Coaching
                 </button>

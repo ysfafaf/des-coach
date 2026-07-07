@@ -83,24 +83,22 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
               const cSessions = feedbackSessions.filter(s => s.coachId === coach.id);
               const cAvg = cSessions.length > 0
                 ? (cSessions.reduce((acc, s) => acc + Number(s.rating || 0), 0) / cSessions.length).toFixed(1)
-                : '—';
+                : '-';
               const isSelected = selectedCoachId === coach.id;
               return (
                 <button
                   key={coach.id}
                   onClick={() => setSelectedCoachId(coach.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                    isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                  }`}
+                  className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
                       <p className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>{coach.name}</p>
-                      <p className={`text-[9px] font-mono ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>{coach.role}</p>
+                      <p className={`text-[9px] font-sans ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>{coach.role}</p>
                     </div>
-                    <div className={`flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                      isSelected ? 'bg-white/10 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
+                    <div className={`flex items-center gap-1 text-[10px] font-bold font-sans px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/10 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
                       <Star className={`w-3 h-3 ${isSelected ? 'fill-white' : 'fill-amber-400 text-amber-400'}`} />
                       {cAvg}
                     </div>
@@ -123,26 +121,19 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
               </div>
 
               <div className="text-center">
-                <span className="text-3xl font-black text-slate-900">{averageRating}</span>
+                <span className="text-3xl font-bold text-slate-900">{averageRating}</span>
                 <span className="text-xs text-slate-400 ml-1">/ 5.0</span>
               </div>
 
               <div className="flex justify-center gap-0.5">
-                {[1,2,3,4,5].map(s => (
+                {[1, 2, 3, 4, 5].map(s => (
                   <Star key={s} className={`w-4 h-4 ${s <= Math.round(Number(averageRating)) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                 ))}
               </div>
               <span className="text-[10px] text-slate-500 block text-center">Total {coachSessions.length} ulasan bimbingan</span>
 
               <div className="border-t border-slate-100 pt-4 space-y-2 text-[10px] text-slate-500">
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-slate-400" />
-                  <span>Sertifikasi bimbingan terverifikasi</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-slate-400" />
-                  <span>Sesuai target standar kepuasan &gt; 4.2</span>
-                </div>
+
               </div>
             </div>
           )}
@@ -155,7 +146,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Komentar Terbaru</h4>
               <h3 className="text-sm font-bold text-slate-800">Log Feedback & Balasan HOD</h3>
             </div>
-            <span className="px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono font-semibold text-slate-600">
+            <span className="px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-[10px] font-sans font-semibold text-slate-600">
               Total Feedback: {coachSessions.length}
             </span>
           </div>
@@ -187,7 +178,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
                   </div>
                   <div className="flex items-center gap-1 bg-amber-50 text-amber-800 px-2 py-0.5 rounded border border-amber-200">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
-                    <span className="text-[10px] font-bold font-mono">{sess.rating}</span>
+                    <span className="text-[10px] font-bold font-sans">{sess.rating}</span>
                   </div>
                 </div>
 
@@ -203,7 +194,7 @@ export default function FeedbackView({ currentUser, users, sessions, onAddReply 
                       <div key={reply.id} className="bg-white p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-1">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-slate-800">{reply.authorName} ({reply.authorRole})</span>
-                          <span className="text-[9px] text-slate-400 font-mono">{new Date(reply.timestamp).toLocaleDateString('id-ID')}</span>
+                          <span className="text-[9px] text-slate-400 font-sans">{new Date(reply.timestamp).toLocaleDateString('id-ID')}</span>
                         </div>
                         <p className="text-slate-600 leading-normal">{reply.content}</p>
                       </div>

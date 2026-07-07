@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
 import {
   Mail,
@@ -9,6 +9,9 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Recaptcha from 'react-google-recaptcha';
+import type ReCAPTCHA from 'react-google-recaptcha';
+import desnet from '../assets/desnet.png';
 
 interface LoginViewProps {
   users: User[];
@@ -28,6 +31,8 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
   const [resetToken, setResetToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,7 +53,7 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, recaptcha_token: recaptchaToken }),
       });
       const data = await res.json();
 
@@ -74,6 +79,8 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
         return;
       }
       setError(data.message || 'Login gagal. Periksa kembali email dan password Anda.');
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     } catch {
       // Fallback: local login with INITIAL_USERS
       const matchedUser = users.find(
@@ -84,6 +91,8 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
         return;
       }
       setError('Email atau password tidak valid. Silakan coba lagi.');
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -167,11 +176,15 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
 
       {/* Logo Header */}
       <div className="flex flex-col items-center mb-8 z-10">
-        <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl mb-4">
+        {/* <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-xl mb-4">
           <GraduationCap className="w-7 h-7 text-white" />
-        </div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">DES-Coach</h1>
-        <p className="text-slate-500 text-xs font-mono tracking-widest uppercase mt-1">Portal Bimbingan DESNET</p>
+        </div> */}
+        {/* <div className="w-20 h-20 bg-transparent rounded-2xl flex items-center justify-center shadow-xl mb-4">
+          <img src={desnet} alt="logo desnet" />
+        </div> */}
+        <img src={desnet} alt="logo desnet" width={150} height={150} className="mb-2" />
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">DesCoach</h1>
+        <p className="text-slate-500 text-xs font-sans tracking-widest uppercase mt-1">Portal Bimbingan DESNET</p>
       </div>
 
       {/* Auth Card */}
@@ -248,10 +261,21 @@ export default function LoginView({ users, onLoginSuccess, onUpdateUserPassword 
                   </div>
                 </div>
 
+                <div className="flex items-center justify-center">
+                  <Recaptcha
+                    ref={recaptchaRef}
+                    sitekey="6LfEqkUtAAAAACe54YzxZLZyy11cXmgo1hm8xwZJ"
+                    onChange={(token: string | null) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken(null)}
+                  />
+                </div>
+
+
+
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full mt-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white text-sm font-semibold py-2.5 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
+                  disabled={loading || !recaptchaToken}
+                  className="w-full mt-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 px-4 rounded-xl shadow-xs transition-all cursor-pointer"
                 >
                   {loading ? 'Memproses...' : 'Masuk ke Portal'}
                 </button>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
+import desnet from '../assets/desnet.png';
 import {
   Calendar,
   Clock,
@@ -12,6 +13,7 @@ import {
   GraduationCap,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -71,21 +73,24 @@ export default function Sidebar({ currentUser, activeView, setActiveView, onLogo
         className="absolute -right-4 top-7 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400 rounded-full p-1.5 cursor-pointer z-50 shadow-md transition-all hover:shadow-lg"
         title={isCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
       >
-        {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+        {isCollapsed ? <PanelLeftOpen className="w-2.5 h-2.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
       </button>
 
       {/* Branding */}
       <div className="p-6 border-b border-slate-100 h-[85px] flex items-center">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center font-bold text-white text-base shrink-0">
+          {/* <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center font-bold text-white text-base shrink-0">
             D
+          </div> */}
+          <div className='w-11 h-11 flex items-center justify-center'>
+            <img src={desnet} alt="logo desnet" width={70} height={70} />
           </div>
           {!isCollapsed && (
             <div className="overflow-hidden whitespace-nowrap">
               <div className="flex items-center gap-1">
-                <span className="text-slate-900 font-bold tracking-tight text-sm">DES-Coach</span>
+                <span className="text-slate-900 font-bold tracking-tight text-sm">DesCoach</span>
               </div>
-              <p className="text-[9px] text-slate-400 font-mono tracking-wider">PORTAL BIMBINGAN</p>
+              <p className="text-[9px] text-slate-400 font-sans tracking-wider">PORTAL BIMBINGAN</p>
             </div>
           )}
         </div>
@@ -106,8 +111,8 @@ export default function Sidebar({ currentUser, activeView, setActiveView, onLogo
               key={item.id}
               onClick={() => setActiveView(item.id)}
               className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer text-left ${isActive
-                  ? 'bg-slate-900 text-white font-medium'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+                ? 'bg-slate-900 text-white font-medium'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               title={isCollapsed ? item.label : undefined}
             >

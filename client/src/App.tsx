@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, CoachingSession, Reply } from './types';
-import { CATEGORY_MAP } from './initialData';
+import { CATEGORY_MAP, ROOM_MAP } from './initialData';
 import { normalizeSession, normalizeSessions } from './sessionUtils';
 import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
@@ -9,6 +9,7 @@ import CalendarView from './components/CalendarView';
 import CoachingView from './components/CoachingView';
 import HistoryView from './components/HistoryView';
 import FeedbackView from './components/FeedbackView';
+import desnet from './assets/desnet.png';
 import UserManagementView from './components/UserManagementView';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -316,25 +317,43 @@ export default function App() {
     id: string,
     updates: Partial<CoachingSession>
   ): Promise<boolean> => {
+    // Konversi field camelCase (React) ke snake_case (server)
+    const modeServer = updates.mode
+      ? updates.mode.toLowerCase()
+      : undefined;
+    const roomId = updates.roomName
+      ? (ROOM_MAP[updates.roomName] ?? null)
+      : null;
+
+    const payload: Record<string, unknown> = {};
+    if (updates.topic !== undefined) payload.topic = updates.topic;
+    if (updates.category !== undefined) payload.category_id = CATEGORY_MAP[updates.category] ?? undefined;
+    if (updates.date !== undefined) payload.scheduled_date = updates.date;
+    if (updates.startTime !== undefined) payload.start_time = updates.startTime;
+    if (updates.endTime !== undefined) payload.end_time = updates.endTime;
+    if (modeServer !== undefined) payload.mode = modeServer;
+    if (modeServer === 'online') payload.meet_link = updates.meetingLink ?? null;
+    if (modeServer === 'offline') payload.room_id = roomId;
+    if (updates.coachId !== undefined) payload.coach_id = updates.coachId;
+
     try {
       const res = await fetch(`/api/jadwal/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...updates,
-          category_id: updates.category ? CATEGORY_MAP[updates.category] : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.message || data.status === 200) {
         setSessions(prev => prev.map(s =>
           s.id === id ? normalizeSession({ ...s, ...updates }, users) : s
         ));
+        await fetchSessions();
         return true;
       }
       alert(data.message || 'Gagal memperbarui jadwal');
       return false;
     } catch {
+      // Fallback: update state lokal jika server tidak dapat dijangkau
       setSessions(prev => prev.map(s =>
         s.id === id ? normalizeSession({ ...s, ...updates }, users) : s
       ));
@@ -433,7 +452,7 @@ export default function App() {
     if (!currentUser) return null;
     switch (activeView) {
       case 'dashboard':
-        return <DashboardView sessions={sessions} users={users} />;
+        return <DashboardView sessions={sessions} users={users} currentUser={currentUser} />;
       case 'users':
         return (
           <UserManagementView
@@ -518,7 +537,7 @@ export default function App() {
 
           {/* Quick Role Switcher */}
           <div className="flex items-center gap-2">
-            <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+            <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200 ">
               {(['Admin', 'HOD', 'Supervisi', 'Karyawan'] as UserRole[]).map((role) => {
                 const isActive = currentUser.role === role;
                 return (
@@ -536,6 +555,11 @@ export default function App() {
               })}
             </div>
           </div>
+
+          {/* <div>
+            <img src={desnet} alt="logo desnet" width={100} height={100} />
+          </div> */}
+
 
           {/* Reset */}
           {/* <div className="flex items-center gap-3">
@@ -565,13 +589,13 @@ export default function App() {
         </main>
 
         {/* FOOTER */}
-        <footer className="bg-white border-t border-slate-200/80 py-3.5 px-6 shrink-0 flex justify-between items-center text-[10px] text-slate-500 select-none">
+        {/* <footer className="bg-white border-t border-slate-200/80 py-3.5 px-6 shrink-0 flex justify-between items-center text-[10px] text-slate-500 select-none">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-slate-400" />
             <span>DESNET & Universitas Diponegoro © 2026. Hak Cipta Dilindungi Undang-Undang.</span>
           </div>
           <span className="font-mono text-slate-400 tracking-wider">DES-COACH PORTAL v1.0.0</span>
-        </footer>
+        </footer> */}
 
       </div>
     </div>

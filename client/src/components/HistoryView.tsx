@@ -99,14 +99,14 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
         {[
           { label: 'Total Sesi Selesai', value: visibleSessions.length, icon: CheckCircle2 },
           { label: 'Sesi Dengan Feedback', value: visibleSessions.filter(s => s.feedbackComment).length, icon: MessageSquare },
-          { label: 'Rata-rata Rating', value: avgRating > 0 ? avgRating.toFixed(1) + ' ★' : '—', icon: Star },
+          { label: 'Rata-rata Rating', value: avgRating > 0 ? avgRating.toFixed(1) + ' ★' : '-', icon: Star },
         ].map((stat, i) => (
           <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
             <div className="flex items-center gap-2 mb-1">
               <stat.icon className="w-4 h-4 text-slate-400" />
               <span className="text-[10px] text-slate-500 font-medium">{stat.label}</span>
             </div>
-            <div className="text-xl font-black text-slate-900 font-mono">{stat.value}</div>
+            <div className="text-xl font-bold text-slate-900 font-sans">{stat.value}</div>
           </div>
         ))}
       </div>
@@ -162,11 +162,11 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
 
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-slate-500">
                     <span className="flex items-center gap-1"><UserCheck className="w-3 h-3" /> {isKaryawan ? `Coach: ${session.coachName}` : `Karyawan: ${session.employeeName}`}</span>
-                    <span className="font-mono">{session.date} · {session.startTime}–{session.endTime}</span>
+                    <span className="font-sans">{session.date} · {session.startTime}–{session.endTime}</span>
                     <span className="flex items-center gap-1">
                       {session.mode === 'Online'
                         ? <><Video className="w-3 h-3" /> Online (Teams)</>
-                        : <><MapPin className="w-3 h-3" /> Offline — {session.roomName}</>}
+                        : <><MapPin className="w-3 h-3" /> Offline - {session.roomName}</>}
                     </span>
                     <span className="text-slate-400">{session.category}</span>
                   </div>
@@ -272,7 +272,7 @@ export default function HistoryView({ currentUser, sessions }: HistoryViewProps)
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Balasan HOD</span>
                         {selectedSession.replies.map(reply => (
                           <div key={reply.id} className="bg-blue-50 border border-blue-100 p-3 rounded-xl">
-                            <span className="text-[10px] font-bold text-blue-800 block">{reply.authorName} (HOD) — {new Date(reply.timestamp).toLocaleString('id-ID')}</span>
+                            <span className="text-[10px] font-bold text-blue-800 block">{reply.authorName} (HOD) - {new Date(reply.timestamp).toLocaleString('id-ID')}</span>
                             <p className="text-xs text-blue-900 mt-1 whitespace-pre-wrap">{reply.content}</p>
                           </div>
                         ))}

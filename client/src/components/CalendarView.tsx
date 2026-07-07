@@ -216,7 +216,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                     </div>
                   ))}
                   {daySessions.length > 2 && (
-                    <div className="text-[9px] text-slate-400 font-mono pl-1">+{daySessions.length - 2} lagi</div>
+                    <div className="text-[9px] text-slate-400 font-sans pl-1">+{daySessions.length - 2} lagi</div>
                   )}
                 </div>
 
@@ -230,10 +230,14 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                   >
                     <div className="bg-slate-50 rounded-xl shadow-2xl border border-slate-50/50 overflow-hidden">
                       {/* Tooltip header */}
-                      <div className="px-3 py-2 bg-slate-800 border-b border-slate-700/60 flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-50" />
-                        <span className="text-[10px] font-bold text-slate-200 tracking-wide">
-                          {day} {monthsList[currentMonth]} — {daySessions.length} Sesi
+                      <div className="px-3 py-2 bg-slate-900 border-b border-slate-700/60 flex items-center gap-1.5 justify-between">
+                        <div className="flex items-center px-2 bg-slate-50 rounded-t-sm border border-slate-500">
+                          <span className="text-[10px] font-extrabold text-slate-900 tracking-wide">
+                            {day} {monthsList[currentMonth]}
+                          </span>
+                        </div>
+                        <span className="text-[8px] font-bold text-slate-200 tracking-wide">
+                          {daySessions.length} Sesi
                         </span>
                       </div>
                       {/* Session list */}
@@ -252,9 +256,9 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                                 {session.startTime}–{session.endTime} · {session.employeeName}
                               </p>
                               <span className={`inline-block mt-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${session.status === 'Completed' || session.isCompleted
-                                ? 'bg-emerald-900/60 text-emerald-300'
+                                ? 'bg-slate-700 text-emerald-300'
                                 : session.status === 'Active'
-                                  ? 'bg-amber-900/60 text-amber-300'
+                                  ? 'bg-slate-700 text-amber-300'
                                   : 'bg-slate-700 text-slate-300'
                                 }`}>
                                 {session.status === 'Completed' || session.isCompleted ? 'Selesai'
@@ -306,7 +310,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] font-mono text-slate-400">{session.mode}</span>
+                  <span className="text-[10px] font-sans text-slate-400">{session.mode}</span>
                 </div>
               </div>
             ))}
@@ -485,7 +489,7 @@ export default function CalendarView({ currentUser, users, sessions, onAddSessio
                         <input
                           type="url"
                           required
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none focus:border-slate-400 font-mono"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-xs outline-none focus:border-slate-400 font-sans"
                           value={meetingLink}
                           onChange={(e) => setMeetingLink(e.target.value)}
                         />

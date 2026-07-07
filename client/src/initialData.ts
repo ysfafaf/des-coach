@@ -65,4 +65,13 @@ export const MEETING_ROOMS = [
   'Ruangan Epsilon (Lantai 4 - Ruang Direksi)'
 ];
 
+// Peta nama ruangan ke room_id di database (sesuai RoomSeeder)
+export const ROOM_MAP: Record<string, number> = {
+  'Ruangan Alpha (Lantai 2 - Samping Lift)': 1,
+  'Ruangan Beta (Lantai 2 - Dekat Pantry)': 2,
+  'Ruangan Gamma (Lantai 3 - Ruang Utama)': 3,
+  'Ruangan Delta (Lantai 3 - Dekat Balkon)': 4,
+  'Ruangan Epsilon (Lantai 4 - Ruang Direksi)': 5,
+};
+
 export const INITIAL_SESSIONS: CoachingSession[] = [];

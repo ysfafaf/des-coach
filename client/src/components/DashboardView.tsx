@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 
 interface DashboardViewProps {
+  currentUser: User;
   sessions: CoachingSession[];
   users: User[];
 }
 
-export default function DashboardView({ sessions, users }: DashboardViewProps) {
+export default function DashboardView({ currentUser, sessions, users }: DashboardViewProps) {
   const [apiData, setApiData] = useState<{
     grafikBulanan?: { bulan: string; bulan_num: string; jumlah: number }[];
     topKategori?: { nama_kategori: string; jumlah_digunakan: number }[];
@@ -45,6 +46,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
     fetchDashboard();
   }, []);
 
+  const isAdmin = currentUser.role === 'Admin';
   const completedSessions = sessions.filter(s => s.isCompleted || s.status === 'Completed');
   const totalUsers = users.length;
   const activeCoaches = users.filter(u => u.role === 'Supervisi' || u.role === 'HOD').length;
@@ -76,12 +78,12 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
   const topicCounts = apiData.topKategori
     ? apiData.topKategori.slice(0, 5).map(t => ({ name: t.nama_kategori, count: Number(t.jumlah_digunakan) }))
     : (() => {
-        const counts: Record<string, number> = {};
-        completedSessions.forEach(s => {
-          counts[s.topic] = (counts[s.topic] || 0) + 1;
-        });
-        return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({ name, count }));
-      })();
+      const counts: Record<string, number> = {};
+      completedSessions.forEach(s => {
+        counts[s.topic] = (counts[s.topic] || 0) + 1;
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({ name, count }));
+    })();
 
   const maxMonthly = Math.max(...monthlyCounts.map(d => d.count), 1);
 
@@ -98,7 +100,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
       s.rating || '-',
       'Selesai'
     ]);
-    
+
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -130,25 +132,32 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
           </div>
 
           {/* Export Excel */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export Laporan
-            </button>
-          </div>
+
+          {!isAdmin && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export Laporan
+              </button>
+            </div>
+          )}
+
+
+
+
         </div>
       </div>
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Sesi Selesai', value: completedSessions.length, icon: CheckCircle2, sub: 'coaching tuntas' },
-          { label: 'Total Pengguna', value: totalUsers, icon: Users, sub: 'terdaftar di sistem' },
-          { label: 'Jumlah Coach', value: activeCoaches, icon: TrendingUp, sub: 'supervisi & HOD' },
-          { label: 'Rata-rata Rating', value: avgRating, icon: Star, sub: 'skor kepuasan' },
+          { label: 'Total Sesi Selesai', value: completedSessions.length, icon: CheckCircle2, sub: 'Coaching tuntas' },
+          { label: 'Total Pengguna', value: totalUsers, icon: Users, sub: 'Terdaftar di sistem' },
+          { label: 'Jumlah Coach', value: activeCoaches, icon: TrendingUp, sub: 'Supervisi & HOD' },
+          { label: 'Rata-rata Rating', value: avgRating, icon: Star, sub: 'Skor kepuasan' },
         ].map((kpi, i) => (
           <div key={i} className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">
             <div className="flex justify-between items-start mb-3">
@@ -156,7 +165,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
                 <kpi.icon className="w-4 h-4 text-slate-600" />
               </div>
             </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{kpi.value}</div>
+            <div className="text-2xl font-bold text-slate-900 ">{kpi.value}</div>
             <div className="text-xs font-semibold text-slate-700 mt-0.5">{kpi.label}</div>
             <div className="text-[10px] text-slate-400 mt-0.5">{kpi.sub}</div>
           </div>
@@ -175,19 +184,19 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
             </div>
             <BarChart3 className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="h-44 flex items-end justify-between gap-0.5 pt-2">
+          <div className="h-44 flex items-end justify-center gap-0.5">
             {monthlyCounts.map((data, i) => {
               const heightPercent = (data.count / maxMonthly) * 100;
               return (
-                <div key={i} className="flex-1 flex flex-col items-center group relative">
-                  <span className="absolute bottom-full mb-1.5 hidden group-hover:block bg-slate-900 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none z-10">
+                <div key={i} className="flex-1 h-full flex flex-col justify-end items-center group relative">
+                  <span className="absolute bottom-6 mb-1.5 hidden group-hover:block bg-slate-900 text-white text-[9px] font-sans font-bold px-2 py-0.5 rounded shadow-lg pointer-events-none z-10 whitespace-nowrap">
                     {data.count} Sesi
                   </span>
                   <div
-                    className="w-7 bg-slate-800 rounded-sm transition-all duration-300 hover:bg-slate-950 shadow-xs"
-                    style={{ height: `${Math.max(heightPercent, 8)}%` }}
+                    className="w-full max-w-[20px] bg-slate-600 rounded-xs transition-all duration-300 hover:bg-slate-950 shadow-xs"
+                    style={{ height: `${Math.max(heightPercent, 4)}%` }}
                   />
-                  <span className="text-[9px] font-bold font-mono text-slate-400 mt-2">{data.name}</span>
+                  <span className="text-[9px] font-bold font-sans text-slate-400 mt-1 shrink-0">{data.name}</span>
                 </div>
               );
             })}
@@ -216,7 +225,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
                 <div key={index} className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-700 font-medium truncate w-40">{coach.name}</span>
-                    <span className="text-slate-500 font-mono font-semibold text-[11px]">{coach.count} sesi</span>
+                    <span className="text-slate-500 font-sans font-semibold text-[11px]">{coach.count} sesi</span>
                   </div>
                   <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                     <div
@@ -251,15 +260,14 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-700 truncate font-medium">{topic.name}</span>
-                      <span className="text-slate-500 font-mono font-semibold text-[10px] shrink-0 ml-1">{topic.count} Sesi</span>
+                      <span className="text-slate-500 font-sans font-semibold text-[10px] shrink-0 ml-1">{topic.count} Sesi</span>
                     </div>
                   </div>
                 </div>
               );
             })}
             <div className="border-t border-slate-100 pt-2 flex items-center gap-2 text-[9px] text-slate-400 font-medium">
-              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>Sesi bimbingan kompetensi teknis mendominasi kuartal ini.</span>
+
             </div>
           </div>
         </div>
@@ -272,7 +280,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
             <h4 className="text-sm font-bold text-slate-900">Log Aktivitas Terbaru</h4>
             <p className="text-[10px] text-slate-500 mt-0.5">Daftar lengkap history bimbingan yang telah dilaksanakan karyawan.</p>
           </div>
-          <span className="px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-[10px] font-mono font-semibold text-slate-600">
+          <span className="px-2.5 py-1 rounded bg-slate-50 border border-slate-200 text-[10px] font-sans font-semibold text-slate-600">
             Total Sesi Tuntas: {completedSessions.length}
           </span>
         </div>
@@ -296,7 +304,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
                 </tr>
               ) : completedSessions.map((session) => (
                 <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-5 py-3.5 font-mono whitespace-nowrap">
+                  <td className="px-5 py-3.5 font-sans whitespace-nowrap">
                     <span className="block text-slate-800 font-bold">{session.date}</span>
                     <span className="text-[10px] text-slate-400">{session.startTime} - {session.endTime}</span>
                   </td>
@@ -321,7 +329,7 @@ export default function DashboardView({ sessions, users }: DashboardViewProps) {
                     {session.rating ? (
                       <div className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200">
                         <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-                        <span className="font-bold font-mono">{session.rating}</span>
+                        <span className="font-bold font-sans">{session.rating}</span>
                       </div>
                     ) : (
                       <span className="text-[10px] text-slate-400 italic">Belum dinilai</span>
